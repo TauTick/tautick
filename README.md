@@ -1,6 +1,6 @@
 # TauTick
 
-**Open-source .NET platform for order-flow research and backtesting.**
+**Open-source .NET workspace for visual order-flow research and reproducible historical experiments.**
 
 TauTick is an open-source .NET trading research platform in development, designed to bridge discretionary order-flow analysis with systematic research and backtesting.
 
@@ -24,18 +24,28 @@ TauTick is being designed around a modular .NET core that can support desktop, r
 
 ## First milestone
 
-Development starts deliberately small.
+Build a native **Avalonia** viewer for **Windows and Linux** that opens a local minute-bar CSV and displays an interactive candlestick chart. Start with the verified ES sample: draw price/time axes, pan and zoom, and inspect a candle's timestamp, OHLC and volume with a crosshair.
 
-The first end-to-end workflow will:
+Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
-- load historical market data
-- render candlestick charts
-- calculate multiple session-aware VWAP variants
-- define simple, testable market-behavior conditions around VWAP
-- compare those behaviors across historical sessions
-- inspect individual results directly on the chart
+See the [chart viewer MVP and modular design](docs/charting-mvp.md) for scope, component boundaries and performance checks, and the [sample-data guide](docs/sample-data/README.md) for download instructions. Market data stays outside the repository.
 
-The purpose of this milestone is to establish the foundations for a deeper order-flow research environment while validating TauTick's core research workflow.
+## Longer-term research workflow
+
+The eventual experiment workflow makes a recorded NQ session easy to investigate:
+
+1. Browse the session on a one-minute chart with relevant context, including session VWAP.
+2. Select an interesting interval on the chart and save it with an optional description.
+3. Open the interval for testing with preceding indicator history prepared automatically.
+4. Play historical events at their recorded pace, slow playback, or step through events. Manually arm Entry Trigger and inspect its qualification, confirmation, and rejection reasons.
+5. Change a setting and rerun against the same market inputs and manual arming boundary.
+6. Save the interval and experiment together, including configurations and results, and reopen them later.
+
+Playback speed controls how quickly the experiment is watched. It must not change detector timing or results. Historical playback is the initial scope; connection to the current live market comes later.
+
+After the chart viewer, introduce richer data and indicators, then repeatable replay and automatic state preparation. The existing portable Entry Trigger detector in TradingLab is the integration target for that later workflow; the reuse mechanism still needs validation.
+
+See the [recorded-session research brief](docs/recorded-session-research.md) for the later workflow's evidence, acceptance scenarios and open decisions. Shared terms are defined in the [glossary](GLOSSARY.md).
 
 ## Platform research
 
@@ -43,7 +53,7 @@ Research on existing trading platforms is maintained in [trading-platform-resear
 
 ## Status
 
-TauTick is at the beginning of development.
+TauTick is at the research and specification stage. This repository currently contains project documentation; the first workflow is not implemented yet.
 
 The architecture, APIs, and product direction will evolve as the first research workflows are implemented and validated.
 
