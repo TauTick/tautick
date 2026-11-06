@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../src/TauTick.Desktop/TauTick.Desktop.csproj" />
+    <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
     <PackageReference Include="Avalonia.Headless.XUnit" />
   </ItemGroup>
 </Project>

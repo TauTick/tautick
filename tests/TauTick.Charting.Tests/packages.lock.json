@@ -351,8 +351,7 @@
           "Avalonia.Themes.Fluent": "[12.1.5, )",
           "TauTick.Adapters.Databento": "[1.0.0, )",
           "TauTick.Charting": "[1.0.0, )",
-          "TauTick.MarketData": "[1.0.0, )",
-          "TauTick.SyntheticData": "[1.0.0, )"
+          "TauTick.MarketData": "[1.0.0, )"
         }
       },
       "tautick.marketdata": {

@@ -14,6 +14,7 @@ var chart = new BarChart();
 chart.SetDataset(accepted.Dataset); // BarReadResult.Success from the application
 chart.SetDataset(replacement);     // Replaces the snapshot and fits the entire dataset
 chart.ClearDataset();              // Idempotent; removes candles and axes
+chart.FitToData();                 // Fits the accepted dataset; no-op when clear
 ```
 
 `Dataset` remains the original immutable snapshot. Null replacement throws without
@@ -22,9 +23,13 @@ discarding it. The control owns no disposable dataset resources. It displays
 space for readable axes. The application supplies instrument/provenance information
 outside the chart, as established by the foundation contract.
 
-The chart currently has no pan/zoom, crosshair or other user interaction. The
+The desktop exposes fit-to-data; the chart has no pan/zoom or crosshair. The
 internal time-range setter exists for the chart test/measurement host; it is not
 a new public navigation API. Replacement always restores fit-to-data.
+
+The composed real CSV workflow and its later measurements are recorded in the
+[integration report](mvp-validation.md). The records below are the earlier
+chart-only validation.
 
 ## Drawing and coordinate decisions
 

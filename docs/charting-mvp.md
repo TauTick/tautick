@@ -1,12 +1,12 @@
 # Chart viewer MVP and modular design
 
-Status: MVP planning draft, 2026-11-06. The foundation scaffold and shared bar/import/chart-input contracts are implemented; see [the developer guide](development.md). The [custom candle chart](chart-control.md) provides axes, fit-to-data and resize/DPI handling, with native checks and basic software redraw measurements. The [Databento minute CSV reader](../src/TauTick.Adapters.Databento/README.md) produces datasets through the shared contract. Desktop real-file integration and the complete interactive viewer remain future work; presented-frame performance has not been measured.
+Status: MVP direction and later proposals, 2026-11-06. The shared contracts, production CSV reader, custom candle chart and desktop loading flow are implemented. The delivered increment is local CSV loading, candles, UTC/price axes, fit-to-data and resizing. See the [integration report](mvp-validation.md) for measurements and the outstanding Windows interactive acceptance. Pan/zoom, crosshairs and presented-frame measurements remain later work. The broader interaction ideas below are proposals, not delivered features.
 
 The agreed direction is a native .NET/Avalonia application for Windows and Linux, a custom chart control using Avalonia/Skia drawing, and separate components for source adapters, calculations, and presentation. The chart should eventually reveal footprint detail as the user stretches its time scale. The current four production projects and their contracts are recorded in the developer guide; the additional module boundaries and performance targets below remain proposals for implementation planning.
 
 ## First usable milestone
 
-Open one local Databento OHLCV-1m CSV, display candlesticks with time and price axes, pan and zoom, reset the view, and inspect a candle's timestamp, OHLC and volume with a crosshair. Show the contract, timeframe, UTC timezone and available coverage. Explain invalid input without presenting a partially accepted file as complete.
+Open one local Databento OHLCV-1m CSV, display candlesticks with time and price axes, fit the data and resize. Show the contract, timeframe, UTC timezone and available coverage. Explain invalid input without presenting a partially accepted file as complete. TAU-6 separately owns pan/zoom and candle inspection with a crosshair.
 
 Start with the verified 960 ESZ5 minute bars described in the [sample-data guide](sample-data/README.md). They cover part of a session. Keep downloaded data outside Git; synthetic fixtures may be checked in and must be identified as synthetic.
 
@@ -75,8 +75,8 @@ MBO will require separate correctness, sustained-throughput and burst tests with
 
 ## Next implementation sequence
 
-1. The minimal bar/import contract, synthetic fixture, Databento CSV reader and custom candle chart are established. Retain the documented module checks and validate the composed native shell on Windows and Linux during integration.
-2. Connect file opening to the reader and chart, then add pan/zoom, crosshair inspection, errors and cancellation to complete the first usable viewer.
+1. The contracts, CSV reader, candle chart and composed loading/error/cancellation flow are established. Complete the outstanding Windows native interactive acceptance recorded in the integration report.
+2. Add pan/zoom and crosshair inspection as the separate navigation increment.
 3. Measure responsiveness, correctness and resource lifetime before broadening the feature set.
 4. Add a clearly defined VWAP calculation and then validated per-price trade data with footprint rendering/semantic zoom. Exact session VWAP needs adequate session trade coverage; any bar-based approximation needs a separate label and convention.
 5. Introduce MBO reconstruction, replay and experiment features as independently specified increments with their own data and performance acceptance criteria.

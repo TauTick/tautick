@@ -24,6 +24,12 @@ internal sealed class NativeApp : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (desktop.Args is ["--measure", var reference, var year])
+            {
+                desktop.MainWindow = ViewerMeasurement.Create(reference, int.Parse(year, System.Globalization.CultureInfo.InvariantCulture));
+                base.OnFrameworkInitializationCompleted();
+                return;
+            }
             var reader = new ScenarioReader(desktop.Args?.Contains("--close-during-read") == true);
             var window = new MainWindow(reader, notice:
                 "SYNTHETIC NATIVE CHECK: successive reads succeed, fail, succeed, then wait for close. File contents are ignored.");

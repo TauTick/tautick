@@ -5,5 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/TauTick.Desktop/TauTick.Desktop.csproj" />
+    <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
   </ItemGroup>
 </Project>
