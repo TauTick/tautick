@@ -37,6 +37,10 @@ The first end-to-end workflow will:
 
 The purpose of this milestone is to establish the foundations for a deeper order-flow research environment while validating TauTick's core research workflow.
 
+## Platform research
+
+Research on existing trading platforms is maintained in [trading-platform-research](https://github.com/mitjasiska/trading-platform-research). See [how to use this research when planning tasks](docs/platform-research.md) for the LEAN and NautilusTrader reports, relevant topics, and guidance for agents.
+
 ## Status
 
 TauTick is at the beginning of development.
