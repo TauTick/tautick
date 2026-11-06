@@ -28,7 +28,22 @@ Build a native **Avalonia** viewer for **Windows and Linux** that opens a local 
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
-See the [chart viewer MVP and modular design](docs/charting-mvp.md) for scope, component boundaries and performance checks, and the [sample-data guide](docs/sample-data/README.md) for download instructions. Market data stays outside the repository.
+The foundation now includes the .NET solution, immutable bar/import contracts, a chart input control and a native placeholder window wired to clearly synthetic data. CSV parsing and candle drawing are still to come.
+
+See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
+
+## Build and run the foundation
+
+Install .NET SDK **10.0.114** (pinned by `global.json`). From the repository root on Windows or Linux:
+
+```sh
+dotnet restore TauTick.slnx --locked-mode
+dotnet build TauTick.slnx --no-restore
+dotnet test TauTick.slnx --no-build --no-restore
+dotnet run --project src/TauTick.Desktop --no-build --no-restore
+```
+
+The window shows the synthetic dataset's identity and coverage above an empty chart area. Closing it exits the application. Linux needs a graphical X11/XWayland session; the guide also provides a native launch/close check using Xvfb. No market files or credentials are needed. Windows native startup remains unverified; see the guide's validation record.
 
 ## Longer-term research workflow
 
@@ -53,7 +68,7 @@ Research on existing trading platforms is maintained in [trading-platform-resear
 
 ## Status
 
-TauTick is at the research and specification stage. This repository currently contains project documentation; the first workflow is not implemented yet.
+TauTick has a buildable foundation and focused contract/wiring tests. The first CSV-to-candles workflow is not implemented yet. No chart performance capacity or Windows/Linux UI acceptance is claimed by the scaffold.
 
 The architecture, APIs, and product direction will evolve as the first research workflows are implemented and validated.
 

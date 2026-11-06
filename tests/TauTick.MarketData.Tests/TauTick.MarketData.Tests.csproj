@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/TauTick.MarketData/TauTick.MarketData.csproj" />
+    <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
+  </ItemGroup>
+</Project>
