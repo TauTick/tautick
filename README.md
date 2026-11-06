@@ -28,7 +28,7 @@ Build a native **Avalonia** viewer for **Windows and Linux** that opens a local 
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
-The foundation includes the .NET solution, immutable bar/import contracts, a chart input control and a native placeholder window wired to clearly synthetic data. The [Databento minute CSV adapter](src/TauTick.Adapters.Databento/README.md) can now load bars through the shared reader interface. Connecting it to the desktop and drawing candles remain separate tasks.
+The foundation includes the .NET solution, immutable bar/import contracts and a native demo wired to clearly synthetic data. The custom chart draws candles with UTC/price axes, fit-to-data and resize/DPI handling; see the [chart control guide](docs/chart-control.md) for usage, native validation and measured software redraw work. The [Databento minute CSV adapter](src/TauTick.Adapters.Databento/README.md) loads bars through the shared reader interface. Connecting real-file loading to the desktop chart and completing the interactive viewer remain separate tasks.
 
 See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
 
@@ -43,7 +43,7 @@ dotnet test TauTick.slnx --no-build --no-restore
 dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-The window shows the synthetic dataset's identity and coverage above an empty chart area. Closing it exits the application. Linux needs a graphical X11/XWayland session; the guide also provides a native launch/close check using Xvfb. No market files or credentials are needed. Windows native startup remains unverified; see the guide's validation record.
+The window shows the synthetic dataset's identity and coverage above the candle chart. Its scaffold header remains for the separate shell task to replace. Closing it exits the application. Linux needs a graphical X11/XWayland session; the guide also provides a native launch/close check using Xvfb. No market files or credentials are needed. The chart's isolated native host has been checked on Windows and Linux/WSLg; see its validation record for outstanding platform checks.
 
 ## Longer-term research workflow
 
@@ -68,7 +68,7 @@ Research on existing trading platforms is maintained in [trading-platform-resear
 
 ## Status
 
-TauTick has a buildable foundation and focused contract/wiring tests. The first CSV-to-candles workflow is not implemented yet. No chart performance capacity or Windows/Linux UI acceptance is claimed by the scaffold.
+TauTick has a buildable foundation, a Databento minute CSV reader, a custom candle chart and focused adapter/contract/rendering tests. The desktop CSV-to-candles workflow is not implemented yet. Native chart checks and basic redraw observations are recorded in the chart guide; full viewer and cross-platform acceptance remain outstanding.
 
 The architecture, APIs, and product direction will evolve as the first research workflows are implemented and validated.
 

@@ -171,9 +171,10 @@ The separate local check matched reference SHA-256
 **294973**, first start **2025-09-22 00:00 UTC**, last start **15:59 UTC**, coverage
 **[00:00, 16:00) UTC**, with no interior gaps. The downloaded CSV remains outside Git.
 
-Windows build/test and native file-path behavior remain outstanding. The actual
-file tests exercised spaces and non-ASCII paths on Linux only. No desktop UI,
-native window check or chart performance test was performed for this headless task.
+That adapter-only pass exercised build/test and actual-file ownership with spaces
+and non-ASCII paths on Linux only. The later [combined validation record](../../docs/development.md#combined-reader-and-chart-validation--2026-11-06)
+also covers Windows build/test and file ownership. No desktop UI, native window
+check or chart performance test was performed for this headless adapter task.
 TAU-5 must connect this reader to the shell/chart and validate the application on
 both platforms. The shell needs a known full contract year, caller-owned file
 lifetime, cancellation/error handling and UI-thread publication of accepted data.

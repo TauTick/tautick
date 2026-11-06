@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/TauTick.Charting/TauTick.Charting.csproj" />
+    <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <Compile Include="../TauTick.Charting.Tests/ChartFixtures.cs" Link="ChartFixtures.cs" />
+  </ItemGroup>
+</Project>
