@@ -15,12 +15,14 @@ dotnet test TauTick.slnx --no-build --no-restore
 dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-The window starts empty. **Open CSV** opens the platform file picker. The default
-reader is deliberately `Development/SyntheticPreviewReader`: it ignores file
-contents, waits one second and returns three invented bars, including a gap.
-The visible synthetic notice remains throughout. Any small, disposable local CSV
-can exercise the picker; no market files or credentials are required. The file
-must still be readable because the shell exercises actual stream ownership.
+The window starts empty. Enter a known four-digit **Full contract year**, then
+**Open CSV** opens the platform file picker and the actual Databento minute reader
+parses the selected file. Use **2025** for the verified ESZ5 reference sample.
+The year is an explicit import setting: a short symbol cannot distinguish decades.
+It is never inferred from the filename, current year or recording timestamp.
+Changing it does not relabel an already accepted dataset. It applies to the next
+attempt and is disabled while selecting/loading. Invalid or missing years disable
+Open. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV conventions.
 
 Open is disabled from picker invocation until the attempt finishes. Canceling the
 picker leaves accepted data intact. A successful read replaces the chart and its
@@ -28,15 +30,19 @@ instrument, timeframe, UTC coverage and source metadata in one UI turn. Failure
 shows the first structured error (including available row/field context), retains
 the previous chart/metadata, and enables another attempt. The coverage is a
 start-inclusive/end-exclusive available range, not a claim of a complete session.
+**Fit to data** fits the accepted snapshot; it also remains available while a
+replacement is loading. The ES reference is partial-session data.
 
 ## Composition and lifetime
 
-`App.OnFrameworkInitializationCompleted` creates `MainWindow`. Its parameterless
-constructor selects the development reader. TAU-5 can instead construct
-`new MainWindow(productionReader)` there and omit the synthetic notice. The current
-Databento implementation is `DatabentoMinuteCsvReader`; follow its module's guide
-for the required known full contract year. The native picker is the default; `ICsvFilePicker` is the small
-shell-specific test seam. `CsvFile` wraps a selected storage handle, its display
+`App.OnFrameworkInitializationCompleted` creates `MainWindow`. Normal construction
+selects a fresh `DatabentoMinuteCsvReader` for each attempt, using the explicit year.
+`CsvViewerSession` captures its reader factory on the UI thread before selecting
+the file, then runs the entire read on a worker. Passing an explicit reader to
+`MainWindow` remains a development/test seam; the application contains no fake
+reader or synthetic-data dependency. The native picker is the default;
+`ICsvFilePicker` is the small shell-specific test seam.
+`CsvFile` wraps a selected storage handle, its display
 name and stream opener. It is not a second market-data model.
 
 `MainWindow.Chart` is the existing `BarChart` surface. It receives the exact accepted
@@ -58,12 +64,20 @@ are not logged with local paths or file contents.
 
 ## Focused and native validation
 
-`tests/TauTick.Desktop.Tests` uses controlled synthetic readers and selections through
-the published contracts. It covers success/replacement, metadata consistency,
+`tests/TauTick.Desktop.Tests` includes production-composition integration checks
+using invented CSV bytes and the actual parser/chart, plus controlled readers and
+selections through the published contracts. It covers success/replacement, metadata consistency,
 picker cancellation, repeated Open, structured failures and recovery, missing and
 unreadable files, unexpected exceptions, synchronous reader work, close during
 selection/read, cancellation, ignored cancellation and resource ownership. These
-are Avalonia.Headless tests, not native file-dialog validation.
+are Avalonia.Headless tests, not native file-dialog validation. The production
+checks additionally cover exact values and interval positions, invalid schema,
+year configuration, failed replacement with retained viewport/metadata, fit,
+control resizing and closing while real parser I/O awaits cancellation.
+
+The current real-data/native checks, measurement mode and outstanding Windows
+interactive checks are in [mvp-validation.md](mvp-validation.md). The following
+legacy scenario mode and platform record describe the earlier shell-only checks.
 
 The separate native host composes the same shell and native picker with a controlled
 reader. It is intentionally outside the solution's ordinary test run:

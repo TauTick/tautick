@@ -24,15 +24,15 @@ TauTick is being designed around a modular .NET core that can support desktop, r
 
 ## First milestone
 
-Build a native **Avalonia** viewer for **Windows and Linux** that opens a local minute-bar CSV and displays an interactive candlestick chart. Start with the verified ES sample: draw price/time axes, pan and zoom, and inspect a candle's timestamp, OHLC and volume with a crosshair.
+The native **Avalonia** viewer opens a local Databento minute-bar CSV and displays candles with price and UTC time axes, fit-to-data and resizing. Pan/zoom, crosshairs and indicators are later work.
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
-The foundation includes the .NET solution, immutable bar/import contracts and a native desktop shell with file selection, responsive loading, errors and cancellation. The shell currently uses a clearly labeled synthetic reader; see the [desktop shell guide](docs/desktop-shell.md) for checks and production integration. The custom chart draws candles with UTC/price axes, fit-to-data and resize/DPI handling; see the [chart control guide](docs/chart-control.md) for usage, native validation and measured software redraw work. The [Databento minute CSV adapter](src/TauTick.Adapters.Databento/README.md) loads bars through the shared reader interface. Selecting that production reader in the shell and validating the complete real-data workflow belong to the integration task.
+The desktop shell uses the [production CSV reader](src/TauTick.Adapters.Databento/README.md) and [custom chart](docs/chart-control.md) through the shared immutable contracts. Loading runs off the UI thread. Failed replacement preserves the previous chart and metadata; closing cancels pending work. The production application has no synthetic reader or synthetic-data dependency. See the [shell guide](docs/desktop-shell.md) and [integration validation report](docs/mvp-validation.md) for usage, measurements and outstanding acceptance checks.
 
 See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
 
-## Build and run the foundation
+## Build and run the viewer
 
 Install .NET SDK **10.0.114** (pinned by `global.json`). From the repository root on Windows or Linux:
 
@@ -43,7 +43,7 @@ dotnet test TauTick.slnx --no-build --no-restore
 dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-The window starts empty. Open CSV selects a local file; the development reader ignores its contents, waits one second and supplies three invented bars with matching source metadata. The synthetic notice makes this explicit. Closing cancels pending work and exits the application. Linux needs a graphical X11/XWayland session. No market files or credentials are needed. See the [shell validation record](docs/desktop-shell.md#platform-record) and chart guide for native checks and outstanding platform coverage.
+Download the small public minute CSV using the [sample-data guide](docs/sample-data/README.md), outside the checkout. The window starts empty: enter the known **full contract year** (**2025** for the verified ESZ5 sample), then choose **Open CSV**. Short symbols do not identify a decade, so the application does not guess from a filename or recording date. The verified sample contains 960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit to data** restores the full accepted range. Linux needs a graphical X11/XWayland session. The public sample needs no account or credentials; ordinary tests use only synthetic fixtures.
 
 ## Longer-term research workflow
 
@@ -68,7 +68,7 @@ Research on existing trading platforms is maintained in [trading-platform-resear
 
 ## Status
 
-TauTick has a buildable foundation, a Databento minute CSV reader, a custom candle chart, a desktop shell using a synthetic reader, and focused adapter/contract/rendering/shell tests. Production CSV-to-candles integration remains outstanding. Native checks and basic chart redraw observations are recorded in the component guides; full viewer and cross-platform acceptance remain separate.
+Production CSV-to-candles integration is implemented. Release builds and 163 tests pass on Windows and Linux. Native loading, error recovery, replacement, fit, resizing and normal close were exercised on Windows at 100% and Ubuntu/WSLg at 100% and 200% scaling; Linux closing-during-load was also exercised. Windows high-DPI and closing-during-load interaction remain unverified. See the [validation report](docs/mvp-validation.md) for measured scope and limitations. Complete cross-platform interactive acceptance and presented-frame performance are not claimed.
 
 The architecture, APIs, and product direction will evolve as the first research workflows are implemented and validated.
 

@@ -203,12 +203,6 @@
       "tautick.marketdata": {
         "type": "Project"
       },
-      "tautick.syntheticdata": {
-        "type": "Project",
-        "dependencies": {
-          "TauTick.MarketData": "[1.0.0, )"
-        }
-      },
       "Avalonia": {
         "type": "CentralTransitive",
         "requested": "[12.1.5, )",

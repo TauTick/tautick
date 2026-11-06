@@ -54,6 +54,15 @@ public sealed class BarChart : Control
         InvalidateLayout();
     }
 
+    /// <summary>Fits the complete accepted dataset without changing its bars or timeframe.</summary>
+    public void FitToData()
+    {
+        VerifyAccess();
+        if (_dataset is null) return;
+        _viewport = ChartViewport.Fit(_dataset);
+        InvalidateLayout();
+    }
+
     // Test/measurement harness access only. There are no user-facing navigation interactions yet.
     internal void SetVisibleTimeRange(DateTimeOffset start, DateTimeOffset end)
     {

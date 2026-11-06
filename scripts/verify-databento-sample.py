@@ -1,7 +1,8 @@
 """Compare the headless reader's output against an explicit local Databento minute CSV.
 
 No network requests, downloads, or data files are created. Run from any directory
-after building samples/TauTick.Databento.Verify in Debug. Python standard library only.
+after building samples/TauTick.Databento.Verify. Defaults to its Debug output;
+--reader selects a Release/external-artifacts DLL. Python standard library only.
 """
 
 import argparse
@@ -16,13 +17,14 @@ import subprocess
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("csv", type=Path)
 parser.add_argument("contract_year", type=int)
+parser.add_argument("--reader", type=Path, help="Built verifier DLL (for Release or external artifacts directories)")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 path = args.csv.resolve()
 reference_hash = "cab4d4c81f7c8ac1ae1c109614f892ac22886ea14f49cbdbbeb68aaa1309d1d7"
 actual_hash = hashlib.sha256(path.read_bytes()).hexdigest()
 run = subprocess.run(
-    ["dotnet", str(root / "samples/TauTick.Databento.Verify/bin/Debug/net10.0/TauTick.Databento.Verify.dll"),
+    ["dotnet", str(args.reader.resolve() if args.reader else root / "samples/TauTick.Databento.Verify/bin/Debug/net10.0/TauTick.Databento.Verify.dll"),
      str(path), str(args.contract_year)],
     check=True, capture_output=True, text=True,
 )

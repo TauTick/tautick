@@ -4,8 +4,10 @@ using TauTick.MarketData;
 namespace TauTick.Desktop;
 
 /// <summary>UI-thread-owned orchestration. A failed attempt never changes the accepted dataset.</summary>
-public sealed class CsvViewerSession(IHistoricalBarReader reader, ICsvFilePicker picker)
+public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, ICsvFilePicker picker)
 {
+    public CsvViewerSession(IHistoricalBarReader reader, ICsvFilePicker picker) : this(() => reader, picker) { }
+
     private CancellationTokenSource? _operation;
 
     public event Action? Changed;
@@ -28,6 +30,8 @@ public sealed class CsvViewerSession(IHistoricalBarReader reader, ICsvFilePicker
         Changed?.Invoke();
         try
         {
+            // Capture the UI's import configuration once for this attempt, before any worker work.
+            var reader = createReader();
             // Native pickers have no cancellation token. A late selection is disposed and ignored on close.
             using var file = await picker.PickAsync();
             if (IsClosed) return;
