@@ -1,0 +1,4 @@
+<Project>
+  <!-- Interactive native validation host, not an xUnit executable. -->
+  <Import Project="../../Directory.Build.props" />
+</Project>

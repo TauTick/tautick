@@ -1,5 +1,4 @@
 using Avalonia.Headless.XUnit;
-using TauTick.Desktop;
 using TauTick.MarketData;
 using TauTick.SyntheticData;
 
@@ -60,23 +59,4 @@ public sealed class ChartInputTests
         Assert.Same(data, chart.Dataset);
     }
 
-    [AvaloniaFact]
-    public void DemoWindowLoadsTheSyntheticFixtureAndReleasesItOnClose()
-    {
-        var window = new MainWindow();
-        try
-        {
-            window.Show();
-            var data = Assert.IsType<BarDataset>(window.Chart.Dataset);
-            Assert.Equal("SYNTH-Z25", data.Instrument.Symbol);
-            Assert.Equal("Synthetic", data.Source.Provider);
-            Assert.Equal(SyntheticBars.Create().Bars, data.Bars);
-            Assert.Equal(SyntheticBars.Create().Coverage, data.Coverage);
-        }
-        finally
-        {
-            window.Close();
-        }
-        Assert.Null(window.Chart.Dataset);
-    }
 }

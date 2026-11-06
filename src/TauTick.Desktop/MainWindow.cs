@@ -1,70 +1,83 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media;
 using TauTick.Charting;
+using TauTick.Desktop.Development;
 using TauTick.MarketData;
-using TauTick.SyntheticData;
 
 namespace TauTick.Desktop;
 
-/// <summary>Foundation demo only. The later desktop task owns file selection and loading UI.</summary>
 public sealed class MainWindow : Window
 {
-    private readonly TextBlock _summary = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly Button _open = new() { Name = "OpenCsv", Content = "Open CSV…" };
+    private readonly TextBlock _summary = new() { Name = "DatasetSummary", TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _status = new() { Name = "LoadStatus", TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _error = new() { Name = "LoadError", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.IndianRed };
+    private readonly ProgressBar _loading = new() { IsIndeterminate = true, Height = 3 };
+    private readonly ScrollViewer _errorPanel;
 
-    public MainWindow()
+    // TAU-5 replaces this development reader at the composition entry point.
+    public MainWindow() : this(new SyntheticPreviewReader(), notice: SyntheticPreviewReader.Notice) { }
+
+    public MainWindow(IHistoricalBarReader reader, ICsvFilePicker? picker = null, string? notice = null)
     {
-        Title = "TauTick — synthetic foundation demo";
-        Width = 900;
-        Height = 560;
-        MinWidth = 480;
-        MinHeight = 320;
-
+        Title = "TauTick — CSV viewer";
+        Width = 1000;
+        Height = 680;
+        MinWidth = 560;
+        MinHeight = 440;
         Chart = new BarChart();
+        Session = new CsvViewerSession(reader, picker ?? new NativeCsvFilePicker(this));
+        _errorPanel = new ScrollViewer { MaxHeight = 100, Content = _error };
         var header = new StackPanel
         {
-            Spacing = 12,
+            Spacing = 10,
             Children =
             {
-                new TextBlock { Text = "TauTick · Synthetic example", FontSize = 24 },
-                _summary,
-                new TextBlock
-                {
-                    Text = "Chart input is connected. Candle drawing and CSV import are future tasks.",
-                    TextWrapping = TextWrapping.Wrap
-                }
+                new TextBlock { Text = "TauTick", FontSize = 24 },
+                new TextBlock { Text = notice, IsVisible = notice is not null, TextWrapping = TextWrapping.Wrap },
+                _open, _summary, _status, _loading,
+                _errorPanel
             }
         };
-        var panel = new DockPanel { Margin = new Thickness(24), LastChildFill = true };
+        var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
         DockPanel.SetDock(header, Dock.Top);
         panel.Children.Add(header);
         panel.Children.Add(new Border
         {
-            Margin = new Thickness(0, 24, 0, 0),
-            BorderThickness = new Thickness(1),
-            BorderBrush = Brushes.Gray,
-            Child = Chart
+            Margin = new Thickness(0, 16, 0, 0), BorderThickness = new Thickness(1),
+            BorderBrush = Brushes.Gray, Child = Chart
         });
         Content = panel;
-        Opened += LoadSyntheticExample;
-        Closed += (_, _) => Chart.ClearDataset();
+        _open.Click += async (_, _) => await Session.OpenAsync();
+        Session.Changed += Refresh;
+        Closed += (_, _) =>
+        {
+            Session.Changed -= Refresh;
+            Session.Close();
+            Chart.ClearDataset();
+        };
+        Refresh();
     }
 
     public BarChart Chart { get; }
+    public CsvViewerSession Session { get; }
 
-    private async void LoadSyntheticExample(object? sender, EventArgs args)
+    private void Refresh()
     {
-        const string sourceName = "synthetic-in-memory";
-        IHistoricalBarReader reader = new InMemoryBarReader(new BarReadResult.Success(SyntheticBars.Create(sourceName)));
-        using var input = new MemoryStream(); // The fake ignores bytes; the caller still owns the stream.
-        var result = await reader.ReadAsync(input, sourceName);
-        if (result is not BarReadResult.Success success)
-            throw new InvalidOperationException("The synthetic demo must be configured with a successful result.");
-
-        Chart.SetDataset(success.Dataset);
-        var data = success.Dataset;
-        _summary.Text = FormattableString.Invariant(
-            $"{data.Instrument.Symbol} · {data.Bars.Count} invented one-minute bars · [{data.Coverage.StartUtc:yyyy-MM-dd HH:mm}, {data.Coverage.EndUtc:HH:mm}) UTC · includes a gap · tick size unknown");
+        // One UI turn publishes the accepted snapshot and its metadata, with no await in between.
+        if (!ReferenceEquals(Chart.Dataset, Session.Dataset))
+        {
+            if (Session.Dataset is { } data) Chart.SetDataset(data);
+            else Chart.ClearDataset();
+        }
+        _summary.Text = Session.Dataset is { } accepted
+            ? DatasetSummary.Format(accepted)
+            : "No dataset loaded. Open a local CSV to begin.";
+        _open.IsEnabled = !Session.IsBusy && !Session.IsClosed;
+        _loading.IsVisible = Session.IsBusy;
+        _status.Text = Session.Status;
+        _error.Text = Session.Error;
+        _errorPanel.IsVisible = Session.Error is not null;
     }
 }
