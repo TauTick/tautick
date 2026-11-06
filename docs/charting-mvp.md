@@ -1,8 +1,8 @@
 # Chart viewer MVP and modular design
 
-Status: planning draft, 2026-11-06. No application code or performance benchmarks exist yet.
+Status: MVP planning draft, 2026-11-06. The foundation scaffold and shared bar/import/chart-input contracts are implemented; see [the developer guide](development.md). CSV import, candle drawing and the complete viewer remain future work. No performance benchmarks exist yet.
 
-The agreed direction is a native .NET/Avalonia application for Windows and Linux, a custom chart control using Avalonia/Skia drawing, and separate components for source adapters, calculations, and presentation. The chart should eventually reveal footprint detail as the user stretches its time scale. The module boundaries and performance targets below are proposals for implementation planning.
+The agreed direction is a native .NET/Avalonia application for Windows and Linux, a custom chart control using Avalonia/Skia drawing, and separate components for source adapters, calculations, and presentation. The chart should eventually reveal footprint detail as the user stretches its time scale. The current four production projects and their contracts are recorded in the developer guide; the additional module boundaries and performance targets below remain proposals for implementation planning.
 
 ## First usable milestone
 
@@ -75,10 +75,10 @@ MBO will require separate correctness, sustained-throughput and burst tests with
 
 ## Next implementation sequence
 
-1. Agree on the minimal bar/import contract and fixtures. Establish the Avalonia shell and custom drawing path on Windows and Linux.
+1. The minimal bar/import contract, synthetic fixture, Avalonia placeholder and chart input surface are established. Validate the native shell on Windows; establish and validate actual custom drawing on Windows and Linux in the later chart/integration tasks.
 2. Develop the Databento CSV reader and candle chart against that shared contract. Integrate file opening, axes, pan/zoom, crosshair inspection, errors and cancellation into the first usable viewer.
 3. Measure responsiveness, correctness and resource lifetime before broadening the feature set.
 4. Add a clearly defined VWAP calculation and then validated per-price trade data with footprint rendering/semantic zoom. Exact session VWAP needs adequate session trade coverage; any bar-based approximation needs a separate label and convention.
 5. Introduce MBO reconstruction, replay and experiment features as independently specified increments with their own data and performance acceptance criteria.
 
-Open implementation choices: exact module/project layout, supported OS versions, package versions, price/time representations for future event data, footprint transition thresholds and row grouping, session conventions, and quantitative performance targets beyond the initial workload.
+The foundation fixes the current project layout, package versions and bar representations in code. Open implementation choices include supported OS versions, price/time representations for future event data, footprint transition thresholds and row grouping, session conventions, and quantitative performance targets beyond the initial workload.

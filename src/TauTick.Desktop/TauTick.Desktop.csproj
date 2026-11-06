@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TauTick.MarketData/TauTick.MarketData.csproj" />
+    <ProjectReference Include="../TauTick.Adapters.Databento/TauTick.Adapters.Databento.csproj" />
+    <ProjectReference Include="../TauTick.Charting/TauTick.Charting.csproj" />
+    <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+  </ItemGroup>
+</Project>
