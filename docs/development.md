@@ -1,8 +1,9 @@
 # Foundation development and contract guide
 
-TAU-1 establishes the shared boundary for the candle viewer. TAU-3 adds the
-[custom candle chart](chart-control.md); CSV parsing, interaction and file selection
-remain separate tasks. Everything shown by the current
+TAU-1 establishes the shared boundary for the candle viewer. TAU-2 adds the
+[Databento minute CSV reader](../src/TauTick.Adapters.Databento/README.md), and TAU-3
+adds the [custom candle chart](chart-control.md). Desktop file loading and chart
+interaction remain separate tasks. Everything shown by the current
 window is invented synthetic data, not the ES sample or a recording.
 
 ## Build, test and launch
@@ -54,16 +55,19 @@ on build, test and run commands.
 | Location | Responsibility / next task |
 | --- | --- |
 | `src/TauTick.MarketData` | Shared immutable contracts. Coordinate changes here across consumers. No UI or provider dependencies. |
-| `src/TauTick.Adapters.Databento` | Buildable library referencing only MarketData. CSV task implements `IHistoricalBarReader` here. No parser or fake is installed in this module. |
-| `src/TauTick.Charting` | Avalonia `BarChart` control and dataset input/clear API. Chart task adds custom drawing and interactions here. No file reads or market reconstruction. |
+| `src/TauTick.Adapters.Databento` | `DatabentoMinuteCsvReader` implements `IHistoricalBarReader`, referencing only MarketData. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV input and explicit contract-year configuration. |
+| `src/TauTick.Charting` | Avalonia `BarChart` with custom candles, UTC/price axes, fit-to-data and resize/DPI handling behind the dataset input/clear API. Interactions remain future work. No file reads or market reconstruction. |
 | `src/TauTick.Desktop` | Application composition and placeholder window. Shell task replaces the synthetic demo with real file loading and its UI. References the adapter and chart. |
 | `samples/TauTick.SyntheticData` | Development fixture and fake reader; only depends on MarketData. The demo and tests consume it. It is not a source adapter. |
 | `tests/TauTick.MarketData.Tests` | Model validity, snapshot ownership, and implemented fake-reader contract behavior. |
-| `tests/TauTick.Charting.Tests` | Reader/result/chart handoff and placeholder-window lifecycle under Avalonia.Headless. |
+| `tests/TauTick.Charting.Tests` | Coordinates, visible ranges, cached layout, Skia raster checks and reader/result/chart handoff under Avalonia.Headless. |
+| `tests/TauTick.Charting.Native` | Isolated synthetic chart host for native visual checks and software redraw measurements; outside the solution. |
+| `tests/TauTick.Adapters.Databento.Tests` | Synthetic CSV validation, precision, cancellation and stream ownership. No UI dependency. |
+| `samples/TauTick.Databento.Verify` | Explicit local-file adapter verification; never part of deterministic test execution. |
 
 The graph is acyclic: adapters → MarketData, chart → MarketData, synthetic data →
 MarketData, desktop → adapter + chart + synthetic data + MarketData. Only the chart,
-desktop and chart tests use Avalonia. No speculative calculations project exists.
+desktop and chart validation hosts use Avalonia. No speculative calculations project exists.
 Future test projects under `tests/` inherit the common test packages/settings.
 
 ## Bar and dataset contract
@@ -110,7 +114,7 @@ current position, with no requirement to seek. The reader must never close it,
 including on failure/cancellation. The final position is unspecified. `sourceName`
 is a provenance/display label, never a path the reader opens.
 
-The future CSV reader owns format/schema checks, required fields, exact parsing,
+The CSV reader owns format/schema checks, required fields, exact parsing,
 identity consistency and row-level validation. It must reject out-of-range values
 and excess precision it cannot preserve (rather than rounding), including volume
 outside `Int64` and timestamps finer than 100 ns. Validate shared invariants while
@@ -165,8 +169,8 @@ an old snapshot after replacement/clear. The demo releases its reference on clos
 
 ## Parallel-task handoff
 
-All three follow-on tasks should start from the same foundation revision and use
-these types and fixtures. Their integration checks are:
+The adapter, chart and shell share these foundation types and fixtures. Their
+integration checks are:
 
 * CSV adapter: read synthetic CSVs into `BarReadResult`, assert exact values,
   identity/coverage, contextual errors, cancellation and stream ownership. Keep
@@ -188,6 +192,24 @@ The native smoke command mapped the 900×560 X11 window under Xvfb and closed it
 through `WM_DELETE_WINDOW` with exit code 0. The MarketData and Databento projects
 also report no direct or transitive package references.
 
-Windows native startup, interactive Linux desktop behavior, Wayland, high DPI and
-chart performance remain unverified. Build/test success alone does not establish
-cross-platform UI acceptance.
+That foundation pass did not verify Windows native startup, interactive Linux
+desktop behavior, Wayland, high DPI or chart performance. Later chart checks and
+their remaining platform limits are recorded in the [chart guide](chart-control.md).
+Build/test success alone does not establish cross-platform UI acceptance.
+
+### Combined reader and chart validation — 2026-11-06
+
+After combining TAU-2 and TAU-3, locked solution restore and Release build passed
+with zero warnings/errors on Windows 11 and Ubuntu 22.04.5 under WSL2, using SDK
+10.0.114 and separate `--artifacts-path` directories. The solution passed **145
+tests on each platform**: 99 adapter, 25 market-data and 21 chart tests. This includes
+the adapter's actual-file ownership cases with spaces and non-ASCII paths on both
+platforms, plus the chart's existing handoff, coordinate and software raster checks.
+
+A separate temporary synthetic probe also passed on both platforms: the actual
+CSV reader produced a dataset that was supplied to `BarChart` and rasterized under
+Avalonia.Headless/Skia. It checked exact decimal values, instrument identity, stream
+ownership, interval-gap placement, replacement and clearing. This does not implement
+desktop file loading. No native windows or performance measurements were repeated
+for this documentation-only reconciliation; the chart guide's recorded native
+checks and outstanding platform limits remain applicable.
