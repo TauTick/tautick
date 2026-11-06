@@ -28,7 +28,7 @@ Build a native **Avalonia** viewer for **Windows and Linux** that opens a local 
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
-The foundation now includes the .NET solution, immutable bar/import contracts, a chart input control and a native placeholder window wired to clearly synthetic data. CSV parsing and candle drawing are still to come.
+The foundation includes the .NET solution, immutable bar/import contracts, a chart input control and a native placeholder window wired to clearly synthetic data. The [Databento minute CSV adapter](src/TauTick.Adapters.Databento/README.md) can now load bars through the shared reader interface. Connecting it to the desktop and drawing candles remain separate tasks.
 
 See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
 

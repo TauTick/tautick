@@ -53,12 +53,14 @@ on build, test and run commands.
 | Location | Responsibility / next task |
 | --- | --- |
 | `src/TauTick.MarketData` | Shared immutable contracts. Coordinate changes here across consumers. No UI or provider dependencies. |
-| `src/TauTick.Adapters.Databento` | Buildable library referencing only MarketData. CSV task implements `IHistoricalBarReader` here. No parser or fake is installed in this module. |
+| `src/TauTick.Adapters.Databento` | `DatabentoMinuteCsvReader` implements `IHistoricalBarReader`, referencing only MarketData. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV input and explicit contract-year configuration. |
 | `src/TauTick.Charting` | Avalonia `BarChart` control and dataset input/clear API. Chart task adds custom drawing and interactions here. No file reads or market reconstruction. |
 | `src/TauTick.Desktop` | Application composition and placeholder window. Shell task replaces the synthetic demo with real file loading and its UI. References the adapter and chart. |
 | `samples/TauTick.SyntheticData` | Development fixture and fake reader; only depends on MarketData. The demo and tests consume it. It is not a source adapter. |
 | `tests/TauTick.MarketData.Tests` | Model validity, snapshot ownership, and implemented fake-reader contract behavior. |
 | `tests/TauTick.Charting.Tests` | Reader/result/chart handoff and placeholder-window lifecycle under Avalonia.Headless. |
+| `tests/TauTick.Adapters.Databento.Tests` | Synthetic CSV validation, precision, cancellation and stream ownership. No UI dependency. |
+| `samples/TauTick.Databento.Verify` | Explicit local-file adapter verification; never part of deterministic test execution. |
 
 The graph is acyclic: adapters → MarketData, chart → MarketData, synthetic data →
 MarketData, desktop → adapter + chart + synthetic data + MarketData. Only the chart,
