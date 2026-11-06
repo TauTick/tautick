@@ -2,9 +2,10 @@
 
 TAU-1 establishes the shared boundary for the candle viewer. TAU-2 adds the
 [Databento minute CSV reader](../src/TauTick.Adapters.Databento/README.md), and TAU-3
-adds the [custom candle chart](chart-control.md). Desktop file loading and chart
-interaction remain separate tasks. Everything shown by the current
-window is invented synthetic data, not the ES sample or a recording.
+adds the [custom candle chart](chart-control.md). TAU-4 adds the [desktop shell](desktop-shell.md)
+with native file selection, responsive loading, errors and cancellation. It selects
+a labeled synthetic reader; production-reader integration and chart interactions
+remain separate tasks. The window's invented data is not the ES sample or a recording.
 
 ## Build, test and launch
 
@@ -57,17 +58,19 @@ on build, test and run commands.
 | `src/TauTick.MarketData` | Shared immutable contracts. Coordinate changes here across consumers. No UI or provider dependencies. |
 | `src/TauTick.Adapters.Databento` | `DatabentoMinuteCsvReader` implements `IHistoricalBarReader`, referencing only MarketData. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV input and explicit contract-year configuration. |
 | `src/TauTick.Charting` | Avalonia `BarChart` with custom candles, UTC/price axes, fit-to-data and resize/DPI handling behind the dataset input/clear API. Interactions remain future work. No file reads or market reconstruction. |
-| `src/TauTick.Desktop` | Application composition and placeholder window. Shell task replaces the synthetic demo with real file loading and its UI. References the adapter and chart. |
+| `src/TauTick.Desktop` | Application composition, native picker and loading/error/cancellation UI. Currently selects a labeled synthetic reader; integration selects the production adapter. |
 | `samples/TauTick.SyntheticData` | Development fixture and fake reader; only depends on MarketData. The demo and tests consume it. It is not a source adapter. |
 | `tests/TauTick.MarketData.Tests` | Model validity, snapshot ownership, and implemented fake-reader contract behavior. |
 | `tests/TauTick.Charting.Tests` | Coordinates, visible ranges, cached layout, Skia raster checks and reader/result/chart handoff under Avalonia.Headless. |
 | `tests/TauTick.Charting.Native` | Isolated synthetic chart host for native visual checks and software redraw measurements; outside the solution. |
+| `tests/TauTick.Desktop.Tests` | Shell transitions, retained data/metadata, cancellation, resource ownership and UI responsiveness under Avalonia.Headless. |
+| `tests/TauTick.Desktop.Native` | Interactive native shell/file-picker checks with controlled synthetic outcomes; outside the solution. |
 | `tests/TauTick.Adapters.Databento.Tests` | Synthetic CSV validation, precision, cancellation and stream ownership. No UI dependency. |
 | `samples/TauTick.Databento.Verify` | Explicit local-file adapter verification; never part of deterministic test execution. |
 
 The graph is acyclic: adapters → MarketData, chart → MarketData, synthetic data →
 MarketData, desktop → adapter + chart + synthetic data + MarketData. Only the chart,
-desktop and chart validation hosts use Avalonia. No speculative calculations project exists.
+desktop and their validation hosts use Avalonia. No speculative calculations project exists.
 Future test projects under `tests/` inherit the common test packages/settings.
 
 ## Bar and dataset contract
@@ -148,7 +151,7 @@ ignoring input bytes and the source label; configure the fixture's source name t
 match the call when demonstrating provenance. The pending-Task constructor allows
 deterministic cancellation tests. The fake does not implement CSV validation.
 
-On the Avalonia UI thread (as demonstrated by `MainWindow`):
+For a direct synthetic handoff, publish on the Avalonia UI thread:
 
 ```csharp
 var data = SyntheticBars.Create();
@@ -165,7 +168,7 @@ the guard rejects worker-thread access. Null replacement throws without clearing
 Clear is idempotent. Assignment/clear invalidate the control for future rendering;
 the chart fits and draws the supplied candles (see the chart control guide). The
 control holds a managed reference, owns no file/stream, and does not dispose data. Readers can safely retain
-an old snapshot after replacement/clear. The demo releases its reference on close.
+an old snapshot after replacement/clear. The desktop shell releases its reference on close.
 
 ## Parallel-task handoff
 

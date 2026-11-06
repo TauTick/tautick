@@ -10,6 +10,7 @@
     <Project Path="samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/TauTick.Desktop.Tests/TauTick.Desktop.Tests.csproj" />
     <Project Path="tests/TauTick.Adapters.Databento.Tests/TauTick.Adapters.Databento.Tests.csproj" />
     <Project Path="tests/TauTick.MarketData.Tests/TauTick.MarketData.Tests.csproj" />
     <Project Path="tests/TauTick.Charting.Tests/TauTick.Charting.Tests.csproj" />
