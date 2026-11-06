@@ -1,6 +1,6 @@
 # Chart viewer MVP and modular design
 
-Status: MVP planning draft, 2026-11-06. The foundation scaffold and shared bar/import/chart-input contracts are implemented; see [the developer guide](development.md). CSV import, candle drawing and the complete viewer remain future work. No performance benchmarks exist yet.
+Status: MVP planning draft, 2026-11-06. The foundation scaffold and shared bar/import/chart-input contracts are implemented; see [the developer guide](development.md). The [custom candle chart](chart-control.md) now provides axes, fit-to-data and resize/DPI handling, with native checks and basic software redraw measurements. CSV import and the complete interactive viewer remain future work; presented-frame performance has not been measured.
 
 The agreed direction is a native .NET/Avalonia application for Windows and Linux, a custom chart control using Avalonia/Skia drawing, and separate components for source adapters, calculations, and presentation. The chart should eventually reveal footprint detail as the user stretches its time scale. The current four production projects and their contracts are recorded in the developer guide; the additional module boundaries and performance targets below remain proposals for implementation planning.
 

@@ -1,7 +1,8 @@
 # Foundation development and contract guide
 
-TAU-1 establishes the shared boundary for the candle viewer. It does not implement
-CSV parsing, drawing, interaction or file selection. Everything shown by the current
+TAU-1 establishes the shared boundary for the candle viewer. TAU-3 adds the
+[custom candle chart](chart-control.md); CSV parsing, interaction and file selection
+remain separate tasks. Everything shown by the current
 window is invented synthetic data, not the ES sample or a recording.
 
 ## Build, test and launch
@@ -158,8 +159,8 @@ if (result is BarReadResult.Success accepted)
 input. `Dataset` reads, replacement and `ClearDataset()` require the UI thread;
 the guard rejects worker-thread access. Null replacement throws without clearing.
 Clear is idempotent. Assignment/clear invalidate the control for future rendering;
-the foundation intentionally draws no candles. The control holds a managed
-reference, owns no file/stream, and does not dispose data. Readers can safely retain
+the chart fits and draws the supplied candles (see the chart control guide). The
+control holds a managed reference, owns no file/stream, and does not dispose data. Readers can safely retain
 an old snapshot after replacement/clear. The demo releases its reference on close.
 
 ## Parallel-task handoff
