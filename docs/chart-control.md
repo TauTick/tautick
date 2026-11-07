@@ -23,13 +23,45 @@ discarding it. The control owns no disposable dataset resources. It displays
 space for readable axes. The application supplies instrument/provenance information
 outside the chart, as established by the foundation contract.
 
-The desktop exposes fit-to-data; the chart has no pan/zoom or crosshair. The
-internal time-range setter exists for the chart test/measurement host; it is not
-a new public navigation API. Replacement always restores fit-to-data.
+The desktop's existing fit action and a primary-button double-click in the plot
+restore fit-to-data. Replacement always fits the new snapshot and releases the old
+inspection and pointer capture. The internal time-range setter remains a test and
+measurement seam; the public dataset handoff is unchanged.
 
-The composed real CSV workflow and its later measurements are recorded in the
-[integration report](mvp-validation.md). The records below are the earlier
-chart-only validation.
+## Navigation and candle inspection
+
+- Drag the primary mouse button inside the plot to pan time horizontally. Pointer
+  capture keeps the drag active outside the plot/window until release. Panning is
+  bounded by dataset coverage. A fully fitted range cannot pan further.
+- Turn the wheel inside the plot to zoom around the time under the pointer. Each
+  vertical wheel unit scales the span by `1.2` (up zooms in). The anchor is preserved
+  to timestamp resolution unless coverage clamping requires moving it. The range
+  spans at least one bar interval and at most the full coverage, including gaps.
+- Double-click inside the plot, or use the desktop's **Fit to data**, to reset.
+  The fitted dataset-wide price scale stays fixed while navigating; vertical
+  navigation and visible-range price scaling are outside this increment.
+- Move within the plot for a crosshair and exact UTC start/OHLC/volume readout.
+  A bar owns `[StartUtc, EndUtc)`: its start is included, its end is excluded.
+  Missing intervals show the crosshair without invented candle values. Known zero
+  volume is displayed as `0`; a gap has no readout. Time always retains all seven
+  fractional digits (100 ns), decimals are not rounded, and volume stays an exact
+  integer. The panel wraps within the chart; exceptionally small space prompts
+  enlargement instead of silently cutting off values.
+- Axis gutters do not initiate gestures. Leaving the plot hides inspection while
+  an existing drag can continue. Release, capture loss, reset, replacement, clear
+  and detachment end capture. Resize and display-scale changes cancel a drag and
+  hide inspection; the next pointer move uses the new logical coordinates.
+
+Navigation never resamples, fills missing intervals or changes bar boundaries.
+`ChartNavigation` performs bounded relative tick arithmetic independently of input
+and drawing. Inspection binary-searches actual interval coordinates in O(log n).
+Price extrema are computed once at assignment; reset reuses that fitted viewport.
+Pointer-only updates invalidate drawing without rebuilding `ChartLayout`, candle
+geometry, axis labels or pens. Readout text is reshaped only when its bar or layout
+changes. Framework drawing/recording can still allocate and redraw cached content.
+
+The composed real CSV workflow is recorded in the [integration report](mvp-validation.md).
+Navigation results and the historical renderer evidence are recorded separately below.
 
 ## Drawing and coordinate decisions
 
@@ -85,8 +117,11 @@ dotnet run --project tests/TauTick.Charting.Native -c Release --no-build --no-re
 ```
 
 It has buttons for the four explicit OHLC cases, the existing foundation fixture,
-single/flat, 960 bars, 100,000 bars with exactly 1,000 visible, clear, size changes,
-and measurements. All inputs are deterministic and explicitly synthetic.
+single/flat, 960 bars, 100,000 bars with exactly 1,000 initially visible, clear, fit,
+size changes and measurements. Keyboard equivalents are F1–F5 for the datasets,
+F6 clear, F7/F8 small/large, F9 measure and F10 fit. The initial large viewport can
+include partial boundary bars after navigation, so its visible count can change.
+All inputs are deterministic and explicitly synthetic.
 The four-case fixture starts at 2025-09-22 09:30 UTC: rising `(100,105,98,103)`,
 falling `(103,104,97,99)`, doji `(100,102,98,100)`, a missing 09:33 interval,
 then flat `(100,100,100,100)` at 09:34. Tuples are OHLC.
@@ -102,12 +137,92 @@ in [development.md](development.md). To inspect 200% scaling in a manageable win
 AVALONIA_GLOBAL_SCALE_FACTOR=2 dotnet run --project tests/TauTick.Charting.Native -c Release --no-build --no-restore -- --small
 ```
 
+For native input diagnostics, use `-- --trace-input`. The host prints JSON records
+prefixed `INPUT` with viewport bounds, plot geometry, capture state, exact readout
+and cached-layout identity after real routed pointer events. This mode observes
+input; it does not manufacture events. On Linux, XTEST can send native mouse/key
+input on an isolated X11 display; logs and captures should stay outside Git.
+
+For focused automated checks:
+
+```sh
+dotnet test tests/TauTick.Charting.Tests -c Release --no-restore
+```
+
 For measurements, use `-- --measure --exit-after-measure` instead. The harness
 prints its OS, native platform, scale, dimensions, loaded/visible counts and results.
+It times both cached redraws and routed pointer inspection plus redraw. Inspection
+samples traverse 50 positions from 25% to 74% of the plot width and assert layout
+identity remains unchanged. These synthetic routed events are a software-work
+measurement, separate from native OS input checks.
 Use separate `--artifacts-path` directories for Windows and WSL builds of the same
 checkout; do not share platform build outputs. No real market files are needed.
 
-## Validation record — 2026-11-06
+## Navigation validation — 2026-11-07
+
+Environment: Ubuntu 24.04.5 x64 on a KVM guest reporting six Broadwell virtual CPUs,
+Linux 6.8.0-147-generic, SDK 10.0.114/runtime 10.0.14, Release. Native applications
+used Avalonia's **X11** backend on a dedicated **Xvfb** 1920×1200 display. XTEST
+injected mouse/key input through the OS; these were native windows, separate from
+Avalonia.Headless. Scale 2 used `AVALONIA_GLOBAL_SCALE_FACTOR=2`, not a physical
+monitor transition.
+
+Locked restores and Release builds passed with zero warnings/errors. All **185
+solution tests** passed: 42 chart, 25 market-data, 99 adapter and 19 desktop.
+The chart suite covers unclamped zoom anchors, coverage/minimum-span limits,
+calendar extremes and one-tick intervals, one-bar/flat inputs, exact start/end and
+gap hit testing, exact decimal/Int64 readouts, empty state, capture release/loss,
+replacement, clear, detachment, resize and simulated scales 1/1.25/2. Pointer-only
+software redraws retain the same layout/candle/axis objects. A counted 100,000-bar
+lookup reads at most 19 bars, with enumeration prohibited. The production
+reader/session/MainWindow integration also exercises navigation and inspection
+through the existing dataset handoff, fit action, replacement and closing.
+
+Native observations at **100% and 200%**:
+
+- The standalone synthetic host accepted wheel zoom, primary-button dragging
+  beyond the plot/window with capture, release outside and double-click reset.
+  The known OHLC cases, missing interval and known zero-volume flat bar produced
+  the expected inspection state. Captures showed readable readouts and crosshairs.
+- The deterministic 100,000-bar fixture began with 1,000 visible bars and remained
+  navigable through repeated inspection, zoom and drag. Pointer-only traces kept
+  the layout identity. Resize, replacement, clear and single-bar zoom behaved as
+  expected, and the windows closed normally. No stalled input step, crash or
+  stale inspection/capture was observed in this bounded sequence. This is not a
+  human-perceived latency or displayed-frame-rate measurement.
+- The production `MainWindow` and actual CSV reader loaded the existing local
+  960-bar ESZ5 reference (the hash in the sample guide). A temporary external
+  harness supplied the file path through the existing picker seam and attached
+  input diagnostics; production shell source was unchanged. Native input then
+  exercised inspection, zoom, pan, double-click fit, resize and close. All 28
+  observed readouts across the two scales matched source timestamps and exact
+  OHLCV using independent CSV/decimal parsing. This increment did not repeat
+  native file-picker interaction or CSV error scenarios; their regression tests
+  remain passing.
+
+The existing measurement command ran without input tracing or concurrent builds.
+Each row uses 20 warmups then 100 synchronous operations, one reused software
+render target at 96 DPI, and a **1060×569 logical-pixel** chart at native scale 1.
+Managed allocations are current-thread bytes per operation, excluding native
+memory and other threads. Dataset creation, initial layout and native presentation
+are excluded. Inspection rows include creating/routing a pointer event, binary
+lookup, exact readout shaping when the bar changes, framework recording and Skia
+rasterization; they assert no candle/axis layout rebuild.
+
+| Loaded / visible | Software operation | Median ms | p95 ms | Managed bytes/op |
+| --- | --- | ---: | ---: | ---: |
+| 960 / 960 | Cached redraw | 6.051 | 11.935 | 31,976 |
+| 960 / 960 | Inspection + redraw | 5.988 | 8.704 | 53,298 |
+| 100,000 / 1,000 | Cached redraw | 7.202 | 7.415 | 30,536 |
+| 100,000 / 1,000 | Inspection + redraw | 7.614 | 7.988 | 50,268 |
+
+These short local samples are not scaling comparisons, capacity guarantees or
+evidence of presented FPS. **Outstanding for this increment:** Windows native
+interaction/high-DPI checks, physical mixed-DPI transitions on either OS,
+bare-metal Linux/Wayland, GPU/compositor frame timing and end-to-end input latency.
+Earlier component checks below do not establish acceptance of these new gestures.
+
+## Historical renderer validation — 2026-11-06
 
 Machine: AMD Ryzen 7 2700X (8 cores/16 logical processors), Radeon RX 580
 (Windows driver 31.0.21924.61), .NET SDK 10.0.114/runtime 10.0.14, Release builds,
