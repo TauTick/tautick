@@ -125,6 +125,7 @@ internal static class ChartPalette
     public static readonly IBrush Doji = Brush.Parse("#F4CF78").ToImmutable();
     public static readonly IBrush Foreground = Brush.Parse("#C7D3DF").ToImmutable();
     public static readonly IPen Grid = new Pen(Brush.Parse("#293641"), 1).ToImmutable();
+    public static readonly IPen Crosshair = new Pen(Brush.Parse("#8197A9"), 1).ToImmutable();
     public static FormattedText Text(string value) => new(value, CultureInfo.InvariantCulture,
         FlowDirection.LeftToRight, Typeface.Default, 12, Foreground);
 }

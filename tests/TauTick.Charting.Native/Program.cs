@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Themes.Fluent;
@@ -44,7 +45,7 @@ internal sealed class FixtureWindow : Window
     {
         _args = args;
         var unaligned = args.Contains("--unaligned");
-        Title = "TAU-3 native chart validation — SYNTHETIC";
+        Title = "TauTick native chart validation — SYNTHETIC";
         Width = unaligned ? 240 : args.Contains("--small") ? 530 : 1060;
         Height = unaligned ? 300 : args.Contains("--small") ? 380 : 680;
         var controls = new WrapPanel { Orientation = Orientation.Horizontal };
@@ -54,6 +55,7 @@ internal sealed class FixtureWindow : Window
         AddButton(controls, "960 bars", () => Load("960"));
         AddButton(controls, "100k / 1k visible", () => Load("large"));
         AddButton(controls, "Clear", () => { _chart.ClearDataset(); _status.Text = "Cleared dataset"; });
+        AddButton(controls, "Fit", _chart.FitToData);
         AddButton(controls, "Small", () => { Width = 530; Height = 380; });
         AddButton(controls, "Large", () => { Width = 1060; Height = 680; });
         AddButton(controls, "Measure", () => _ = MeasureAsync());
@@ -63,7 +65,7 @@ internal sealed class FixtureWindow : Window
             Margin = new Thickness(12),
             Children =
             {
-                new TextBlock { Text = "Synthetic chart fixtures · green rising · red falling · gold doji", FontSize = 18 },
+                new TextBlock { Text = "Synthetic fixtures · drag to pan · wheel to zoom · double-click to fit", FontSize = 16 },
                 controls, _status
             }
         };
@@ -72,6 +74,23 @@ internal sealed class FixtureWindow : Window
         panel.Children.Add(header);
         if (!unaligned) panel.Children.Add(_chart);
         Content = unaligned ? _chart : panel;
+        if (args.Contains("--trace-input")) NativeInputTrace.Attach(_chart, this);
+        KeyDown += (_, e) =>
+        {
+            switch (e.Key)
+            {
+                case Key.F1: Load("cases"); break;
+                case Key.F2: Load("foundation"); break;
+                case Key.F3: Load("single"); break;
+                case Key.F4: Load("960"); break;
+                case Key.F5: Load("large"); break;
+                case Key.F6: _chart.ClearDataset(); break;
+                case Key.F7: Width = 530; Height = 380; break;
+                case Key.F8: Width = 1060; Height = 680; break;
+                case Key.F9: _ = MeasureAsync(); break;
+                case Key.F10: _chart.FitToData(); break;
+            }
+        };
         Opened += (_, _) =>
         {
             Load(unaligned ? "unaligned" : "cases");
@@ -125,6 +144,16 @@ internal sealed class FixtureWindow : Window
                 using var target = new RenderTargetBitmap(
                     new PixelSize((int)_chart.Bounds.Width, (int)_chart.Bounds.Height), new Vector(96, 96));
                 Measure("software RenderTargetBitmap", () => target.Render(_chart));
+                var pointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true);
+                var sample = 0;
+                Measure("routed inspection + software redraw", () =>
+                {
+                    var point = new Point(layout.Plot.Left + layout.Plot.Width * (0.25 + sample++ % 50 / 100.0), layout.Plot.Center.Y);
+                    _chart.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, _chart, pointer, _chart, point,
+                        0, new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None));
+                    target.Render(_chart);
+                    if (!ReferenceEquals(layout, _chart.PreparedLayout)) throw new InvalidOperationException("Inspection rebuilt geometry.");
+                });
             }
             Load("cases");
             Console.WriteLine("Measurements complete; not presented-frame rate.");
