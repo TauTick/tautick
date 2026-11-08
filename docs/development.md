@@ -10,8 +10,10 @@ Windows interactive acceptance. Pan/zoom and crosshairs remain separate work.
 
 ## Build, test and launch
 
-Install [the .NET SDK 10.0.114](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
-for your platform. `global.json` requires that exact SDK with no roll-forward.
+Install [a stable .NET 10.0 SDK, version 10.0.114 or newer](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+for your platform. `global.json` sets the minimum version and uses `latestFeature`
+roll-forward to select the newest installed stable 10.0 feature band and patch.
+Routine 10.0 SDK updates do not require changing the minimum.
 All projects target `net10.0`; `Directory.Packages.props` centrally pins Avalonia
 12.1.5, xUnit v3 and the test tools. Each project's `packages.lock.json` records
 transitive versions and hashes. `NuGet.Config` selects the public NuGet feed.

@@ -8,7 +8,8 @@ library, ATAS X evidence and deliberate differences are in
 
 ## Controls and acceptance walkthrough
 
-Build/run with the pinned SDK and locked dependencies:
+Build/run with a compatible SDK from the [developer guide](development.md#build-test-and-launch)
+and locked dependencies:
 
 ```sh
 dotnet restore TauTick.slnx --locked-mode

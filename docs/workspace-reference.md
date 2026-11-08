@@ -34,7 +34,7 @@ introduced. The acceptance walkthrough documents TauTick's gestures directly.
 
 Selected **Dock 12.1.5**, MIT licensed, from NuGet's stable feed. Its package metadata
 provides net10.0 assets and depends on **Avalonia 12.1.5**, matching the repository's
-pinned SDK **10.0.114** and UI packages. The package repository commit is
+**net10.0** target and pinned UI packages. The package repository commit is
 [`9e85df60156fc2ba454ffaee7038ec8e37d8fe78`](https://github.com/wieslawsoltes/Dock/tree/9e85df60156fc2ba454ffaee7038ec8e37d8fe78).
 
 The [upstream guide](https://wieslawsoltes.github.io/Dock/articles/README.html) and

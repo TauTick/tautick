@@ -9,7 +9,7 @@ the checks below do not establish complete cross-platform acceptance.
 
 ## Run the viewer
 
-Use the pinned .NET SDK 10.0.114 and the native prerequisites in
+Use a compatible .NET SDK and the native prerequisites in
 [development.md](development.md). From the repository root:
 
 ```sh

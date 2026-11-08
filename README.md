@@ -31,10 +31,12 @@ TauTick is being designed around a modular .NET core that can support desktop, r
    cd tautick
    ```
 
-2. Install **.NET SDK 10.0.114** for your platform from the
+2. Install a stable **.NET 10.0 SDK, version 10.0.114 or newer**, for your platform from the
    [.NET 10 downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
-   [global.json](global.json) requires that exact SDK with roll-forward disabled.
-   A runtime alone or a newer SDK does not satisfy the pin. Ensure that installation's
+   [global.json](global.json) sets the minimum version and uses `latestFeature`
+   roll-forward to select the newest installed stable 10.0 SDK, including newer
+   feature bands such as 10.0.302. Future 10.0 SDK updates do not require editing
+   this file. A runtime alone does not include the SDK. Ensure that installation's
    `dotnet` is on `PATH`; reopen your terminal after installation.
 
    **Windows:** use a graphical Windows desktop and the included Windows PowerShell.

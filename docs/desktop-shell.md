@@ -9,7 +9,8 @@ contracts without changing them. The chart and Databento reader are separate mod
 
 ## Launch and checks
 
-Use the pinned .NET SDK 10.0.114 on Windows or Linux:
+Use a compatible .NET SDK on Windows or Linux as described in the
+[developer guide](development.md#build-test-and-launch):
 
 ```sh
 dotnet restore TauTick.slnx --locked-mode

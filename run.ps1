@@ -3,13 +3,13 @@ $ErrorActionPreference = 'Stop'
 Push-Location -LiteralPath $PSScriptRoot
 try {
     if (-not (Get-Command dotnet -CommandType Application -ErrorAction SilentlyContinue)) {
-        [Console]::Error.WriteLine('dotnet was not found. Install the .NET SDK pinned in global.json and add it to PATH. See README.md: Installation and quick start.')
+        [Console]::Error.WriteLine('dotnet was not found. Install a compatible .NET SDK as specified in global.json and add it to PATH. See README.md: Installation and quick start.')
         exit 1
     }
 
     & dotnet --version
     if ($LASTEXITCODE -ne 0) {
-        [Console]::Error.WriteLine('Install the exact .NET SDK pinned in global.json (roll-forward is disabled). See README.md: Installation and quick start.')
+        [Console]::Error.WriteLine('Install a compatible .NET SDK as specified in global.json (newer stable feature bands and patches within the same major/minor version are accepted). See README.md: Installation and quick start.')
         exit $LASTEXITCODE
     }
 

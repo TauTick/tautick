@@ -100,7 +100,8 @@ informed visible-range work and resource reuse; it supplies no TauTick benchmark
 
 ## Reproducible checks
 
-Use pinned .NET SDK 10.0.114. The ordinary solution commands also run the chart tests:
+Use a compatible .NET SDK as described in the [developer guide](development.md#build-test-and-launch).
+The ordinary solution commands also run the chart tests:
 
 ```sh
 dotnet restore TauTick.slnx --locked-mode
