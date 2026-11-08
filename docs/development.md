@@ -16,13 +16,18 @@ All projects target `net10.0`; `Directory.Packages.props` centrally pins Avaloni
 12.1.5, xUnit v3 and the test tools. Each project's `packages.lock.json` records
 transitive versions and hashes. `NuGet.Config` selects the public NuGet feed.
 
-Run from the repository root in Bash or PowerShell:
+For normal startup, follow [Installation and quick start](../README.md#installation-and-quick-start):
+run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run.ps1` on Windows
+or `bash ./run.sh` on Linux. Both restore in locked mode, build incrementally in
+Debug and run without repeating restore/build. Tests are a separate developer step.
+
+For explicit developer stages, run from the repository root in Bash or PowerShell:
 
 ```sh
 dotnet restore TauTick.slnx --locked-mode
-dotnet build TauTick.slnx --no-restore
-dotnet test TauTick.slnx --no-build --no-restore
-dotnet run --project src/TauTick.Desktop --no-build --no-restore
+dotnet build TauTick.slnx --configuration Debug --no-restore
+dotnet test TauTick.slnx --configuration Debug --no-build --no-restore
+dotnet run --project src/TauTick.Desktop --configuration Debug --no-build --no-restore
 ```
 
 Windows: use a graphical desktop with the SDK installed; close the window using

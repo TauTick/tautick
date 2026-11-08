@@ -22,6 +22,72 @@ Rather than treating discretionary chart analysis and quantitative research as s
 
 TauTick is being designed around a modular .NET core that can support desktop, research, data, and external-platform integrations.
 
+## Installation and quick start
+
+1. Obtain the source with Git, then enter the checkout:
+
+   ```sh
+   git clone https://github.com/TauTick/tautick.git
+   cd tautick
+   ```
+
+2. Install **.NET SDK 10.0.114** for your platform from the
+   [.NET 10 downloads](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
+   [global.json](global.json) requires that exact SDK with roll-forward disabled.
+   A runtime alone or a newer SDK does not satisfy the pin. Ensure that installation's
+   `dotnet` is on `PATH`; reopen your terminal after installation.
+
+   **Windows:** use a graphical Windows desktop and the included Windows PowerShell.
+   PowerShell 7 is not required.
+
+   **Linux:** use Bash and a graphical X11 or XWayland session. On Ubuntu 24.04,
+   install the native libraries with:
+
+   ```bash
+   sudo apt-get install libx11-6 libice6 libsm6 libfontconfig1 libxrandr2 libxi6 libxcursor1
+   ```
+
+   Other distributions need equivalent packages; see the
+   [Avalonia Linux guide](https://docs.avaloniaui.net/docs/platform-specific-guides/linux).
+   No .NET workloads, provider SDK, API key or additional scripting runtime are needed.
+
+3. Launch with the single command for your platform:
+
+   **Windows PowerShell:**
+
+   ```powershell
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
+   ```
+
+   `Bypass` applies only to this process and does not change the saved execution
+   policy. Organization policy may still apply.
+
+   **Linux Bash:**
+
+   ```bash
+   bash ./run.sh
+   ```
+
+Use the same command on later launches. Each launcher restores with the committed
+package locks in locked mode, builds the solution incrementally in **Debug**, then
+opens `src/TauTick.Desktop` without another restore or build. Unchanged compiled
+outputs are reused; relevant source or project changes rebuild as needed. Routine
+launch does not run tests. Failures remain visible in the terminal and stop launch;
+the launcher returns the failed stage's or application's exit status.
+
+These commands assume the checkout is the current directory. From elsewhere, pass
+the quoted full launcher path, for example
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Source Projects\tautick\run.ps1"`
+or `bash "/home/me/Source Projects/tautick/run.sh"`.
+
+The first launch opens an initially empty workspace; later launches restore saved
+layouts and input references. Download the public minute CSV outside the checkout
+using the [sample-data guide](docs/sample-data/README.md). Create/select a chart,
+enter the known **full contract year** (**2025** for the verified ESZ5 sample), then
+choose **Open CSV**. The application does not guess the decade. The sample contains
+960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit** restores
+the full accepted range. The public sample needs no account or credentials.
+
 ## Current workspace
 
 The native **Avalonia** workspace hosts independent candle charts in named workspace tabs, split panes and detached windows. Charts support pan/zoom, inspection, fit-to-data and explicit contract-year CSV imports. Layouts and verified input references restore on restart. The [indicator manager](docs/indicators.md) adds independent bar-based VWAP studies with explicit anchors and workspace persistence. See the [workspace guide](docs/workspace.md) for controls, the chart-host interface and validation limits.
@@ -32,18 +98,15 @@ The desktop shell uses the [production CSV reader](src/TauTick.Adapters.Databent
 
 See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
 
-## Build and run the viewer
+## Testing
 
-Install .NET SDK **10.0.114** (pinned by `global.json`). From the repository root on Windows or Linux:
+After a successful launcher build, run tests separately from the repository root:
 
 ```sh
-dotnet restore TauTick.slnx --locked-mode
-dotnet build TauTick.slnx --no-restore
-dotnet test TauTick.slnx --no-build --no-restore
-dotnet run --project src/TauTick.Desktop --no-build --no-restore
+dotnet test TauTick.slnx --configuration Debug --no-build --no-restore
 ```
 
-Download the small public minute CSV using the [sample-data guide](docs/sample-data/README.md), outside the checkout. On first launch the workspace starts with an empty chart: enter the known **full contract year** (**2025** for the verified ESZ5 sample), then choose **Open CSV**. Short symbols do not identify a decade, so the application does not guess from a filename or recording date. The verified sample contains 960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit** restores the full accepted range. Linux needs a graphical X11/XWayland session. The public sample needs no account or credentials; ordinary tests use only synthetic fixtures.
+Ordinary tests use only synthetic fixtures. See the [developer guide](docs/development.md#build-test-and-launch) for explicit build/test commands.
 
 Agents can also exercise the native viewer and visually inspect charts on a Linux
 machine without a graphical login. See [native Linux visual checks](docs/development.md#native-visual-checks-on-linux) for setup, input, capture and cleanup.
