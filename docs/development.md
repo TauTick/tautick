@@ -53,6 +53,84 @@ TauTick.slnx --force-evaluate`, and include the changed lock files with the chan
 Ordinary validation uses locked mode. Release builds use `-c Release` consistently
 on build, test and run commands.
 
+## Native visual checks on Linux
+
+Agents can drive the real viewer and visually inspect charts without a graphical
+login. Verified on Ubuntu 24.04, 2026-11-08: GTK CSV selection, candles/metadata,
+wheel zoom, drag, Fit, resize and normal close at application scales 1 and 2,
+including concurrent isolated sessions. Use focused tests for behavior and native
+checks for affected UI; documentation edits need no full test run.
+
+On Ubuntu, provision these helpers once, alongside the SDK/native libraries above:
+
+```sh
+sudo apt-get install xvfb xauth dbus openbox xdotool at-spi2-core libgtk-3-0t64 \
+  gir1.2-atspi-2.0 gir1.2-freedesktop python3-gi python3-pil
+```
+
+Without sudo, extract helpers outside Git and expose their binaries, libraries,
+typelibs and data via `PATH`, `LD_LIBRARY_PATH`, `GI_TYPELIB_PATH`, `XDG_DATA_DIRS`
+and configuration via `XDG_CONFIG_DIRS`.
+
+After the build above, start a private display, bus and profile per agent from the
+repository root. Artifacts stay outside Git; the caller's environment is restored:
+
+```sh
+(
+  export TAUTICK_UI=$(mktemp -d /tmp/tautick-ui.XXXXXX)
+  export XDG_CONFIG_HOME="$TAUTICK_UI/config" XDG_CACHE_HOME="$TAUTICK_UI/cache"
+  export XDG_DATA_HOME="$TAUTICK_UI/data" XDG_RUNTIME_DIR="$TAUTICK_UI/runtime"
+  mkdir -m 700 "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$XDG_RUNTIME_DIR"
+  printf 'Evidence directory: %s\n' "$TAUTICK_UI"
+  env -u WAYLAND_DISPLAY -u AT_SPI_BUS_ADDRESS -u NO_AT_BRIDGE GDK_BACKEND=x11 \
+    xvfb-run -a -s '-screen 0 2400x1800x24 -nolisten tcp -extension GLX' \
+    dbus-run-session -- bash --noprofile --norc
+)
+```
+
+Inside that shell, launch the WM and the built Debug viewer:
+
+```sh
+openbox --sm-disable >"$TAUTICK_UI/wm.log" 2>&1 &
+TAUTICK_WM_PID=$!
+trap 'kill "$TAUTICK_WM_PID" 2>/dev/null || true' EXIT
+dotnet src/TauTick.Desktop/bin/Debug/net10.0/TauTick.Desktop.dll >"$TAUTICK_UI/viewer.log" 2>&1 &
+TAUTICK_APP_PID=$!
+TAUTICK_WINDOW=$(timeout 20s xdotool search --sync --onlyvisible \
+  --pid "$TAUTICK_APP_PID" --name '^TauTick — CSV viewer$')
+xdotool windowactivate --sync "$TAUTICK_WINDOW"
+```
+
+Use AT-SPI (`gi.repository.Atspi`) to find controls by PID, role and ID:
+`ContractYear`, `OpenCsv`, `FitData`, `DatasetSummary`, `LoadStatus`. Wait for usable
+bounds and expected text/state. The GTK picker is a separate accessible application
+with the same PID: Ctrl+L, type a clearly synthetic CSV's absolute path, then Return.
+Full-desktop portal dialogs may need different targeting.
+
+The chart exposes one `BarChart` surface. Use its current screen bounds for
+`xdotool mousemove`, `click` (1 primary, 4/5 wheel), `mousedown`/`mouseup`, `type`
+and `key`; omit the `--window` input option to use XTEST. Capture native pixels:
+
+```sh
+python3 - <<'PY'
+import os
+from PIL import ImageGrab
+ImageGrab.grab(xdisplay=os.environ['DISPLAY']).save(os.path.join(os.environ['TAUTICK_UI'], 'chart.png'))
+PY
+```
+
+Open the PNG with the agent's image viewer; check candles, gaps, axes, metadata and
+the changed interaction. The [existing chart host](chart-control.md#reproducible-checks)
+has synthetic fixtures and `--trace-input` diagnostics for events, viewport and
+capture. `AVALONIA_GLOBAL_SCALE_FACTOR=2` on launch scales Avalonia, not GTK.
+
+Close with `xdotool key alt+F4`, require `wait "$TAUTICK_APP_PID"` to return 0,
+then exit the shell. The trap/wrappers stop the WM, display and bus; check for any
+remaining owned helpers. Keep PNGs/logs and disposable automation outside Git.
+This uses native X11 with software rendering. Headless tests do not verify native
+input/dialogs; these captures do not establish physical DPI, GPU performance,
+latency or Windows compatibility. Full-desktop/Wayland checks remain separate.
+
 ## Ownership and dependencies
 
 | Location | Responsibility / next task |

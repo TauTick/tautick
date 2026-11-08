@@ -86,7 +86,7 @@ def main():
                         x.XFree(name)
                     attrs = WindowAttributes()
                     x.XGetWindowAttributes(display, window, c.byref(attrs))
-                    if title == "TauTick — synthetic foundation demo" and attrs.map_state == 2:
+                    if title == "TauTick — CSV viewer" and attrs.map_state == 2:
                         return window, title, attrs.width, attrs.height
         finally:
             if children:
