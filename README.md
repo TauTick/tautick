@@ -45,6 +45,9 @@ dotnet run --project src/TauTick.Desktop --no-build --no-restore
 
 Download the small public minute CSV using the [sample-data guide](docs/sample-data/README.md), outside the checkout. The window starts empty: enter the known **full contract year** (**2025** for the verified ESZ5 sample), then choose **Open CSV**. Short symbols do not identify a decade, so the application does not guess from a filename or recording date. The verified sample contains 960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit to data** restores the full accepted range. Linux needs a graphical X11/XWayland session. The public sample needs no account or credentials; ordinary tests use only synthetic fixtures.
 
+Agents can also exercise the native viewer and visually inspect charts on a Linux
+machine without a graphical login. See [native Linux visual checks](docs/development.md#native-visual-checks-on-linux) for setup, input, capture and cleanup.
+
 ## Longer-term research workflow
 
 The eventual experiment workflow makes a recorded NQ session easy to investigate:
