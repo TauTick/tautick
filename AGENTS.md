@@ -6,9 +6,9 @@ Use this default target for issues authored for this repository when the user do
 
 - Workspace: **[Mitja Siska](https://linear.app/mitjasiska)**.
 - Team: **TauTick** (key: `TAU`).
-- Project: **no default project configured**. Leave the project unset unless the user or task specifies one.
+- Project: **[TauTick](https://linear.app/mitjasiska/project/tautick-dfc1f79ea8d6)**.
 
-Resolve the team by its key when using Linear tools. An explicitly selected issue retains its existing team and project unless a move is requested.
+Resolve the team by its key and the project by its linked URL when using Linear tools. Set both on new issues. An explicitly selected issue retains its existing team and project unless a move is requested.
 
 ## Project direction
 
