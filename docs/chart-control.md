@@ -279,3 +279,13 @@ should not be interpreted as a scaling law or platform ranking.
 Outstanding: physical mixed-DPI monitor transitions on Windows/Linux, Windows
 high-DPI native inspection, bare-metal Linux desktops, native Wayland, presented
 frame timings/input latency, and the separate real CSV-to-candles integration.
+
+## Workspace hosting
+
+TAU-8 exposes `ChartTimeRange`, `VisibleTimeRange`,
+`VisibleTimeRangeChanged` and `TryRestoreTimeRange` so a chart document can preserve
+its viewport when Dock recreates a surface. Restore validates the range against
+the accepted dataset and minimum bar interval; a full-range restore uses the
+existing fit behavior. This API does not read files or rebuild bars. The desktop
+[chart-host interface](workspace.md#chart-host-handoff-for-tau-9) owns lifetime and
+feature settings; consumers must not keep a control as the chart's identity.

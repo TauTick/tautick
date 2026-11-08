@@ -29,6 +29,12 @@ internal static class ViewerMeasurement
         {
             try
             {
+                var ready = Stopwatch.StartNew();
+                while (!window.GetVisualDescendants().OfType<TextBox>().Any(c => c.Name == "ContractYear"))
+                {
+                    if (ready.Elapsed > TimeSpan.FromSeconds(10)) throw new TimeoutException("Chart content was not presented.");
+                    await Task.Delay(10);
+                }
                 window.GetVisualDescendants().OfType<TextBox>().Single(c => c.Name == "ContractYear").Text = year.ToString("D4", CultureInfo.InvariantCulture);
                 await MeasureAsync(window, picker, year);
             }

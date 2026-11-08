@@ -27,6 +27,14 @@ public sealed class ViewerNavigationTests
         window.Show();
         try
         {
+            var ready = System.Diagnostics.Stopwatch.StartNew();
+            while (!window.GetVisualDescendants().OfType<TextBox>().Any(c => c.Name == "ContractYear"))
+            {
+                Assert.True(ready.Elapsed < TimeSpan.FromSeconds(10), "Dock did not present the chart content.");
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                await Task.Delay(10);
+            }
             window.GetVisualDescendants().OfType<TextBox>().Single(c => c.Name == "ContractYear").Text = "2025";
             await window.Session.OpenAsync();
             Dispatcher.UIThread.RunJobs();

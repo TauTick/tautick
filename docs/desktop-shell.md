@@ -1,5 +1,8 @@
 # Desktop CSV shell
 
+TAU-8 hosts this per-chart workflow in the [dockable workspace](workspace.md). The
+workspace guide describes current window lifetime, restoration and chart-host APIs.
+
 TAU-4 owns file selection, loading/error state and application orchestration. It uses
 the existing `IHistoricalBarReader`, `BarReadResult`, `BarDataset` and `BarChart`
 contracts without changing them. The chart and Databento reader are separate modules.
@@ -15,7 +18,7 @@ dotnet test TauTick.slnx --no-build --no-restore
 dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-The window starts empty. Enter a known four-digit **Full contract year**, then
+A new chart starts empty. Enter a known four-digit **Full contract year**, then
 **Open CSV** opens the platform file picker and the actual Databento minute reader
 parses the selected file. Use **2025** for the verified ESZ5 reference sample.
 The year is an explicit import setting: a short symbol cannot distinguish decades.
@@ -35,7 +38,9 @@ replacement is loading. The ES reference is partial-session data.
 
 ## Composition and lifetime
 
-`App.OnFrameworkInitializationCompleted` creates `MainWindow`. Normal construction
+`App.OnFrameworkInitializationCompleted` creates `MainWindow` with a local workspace
+store. Each `ChartDocument` owns its `CsvViewerSession`; docking recreates controls
+without closing documents. Normal construction
 selects a fresh `DatabentoMinuteCsvReader` for each attempt, using the explicit year.
 `CsvViewerSession` captures its reader factory on the UI thread before selecting
 the file, then runs the entire read on a worker. Passing an explicit reader to
@@ -45,7 +50,8 @@ reader or synthetic-data dependency. The native picker is the default;
 `CsvFile` wraps a selected storage handle, its display
 name and stream opener. It is not a second market-data model.
 
-`MainWindow.Chart` is the existing `BarChart` surface. It receives the exact accepted
+`MainWindow.Chart` remains a first-chart seam for legacy development hosts. Features
+use `MainWindow.ChartHost` and stable document IDs. Each `BarChart` receives the exact accepted
 dataset reference through `SetDataset`; no bars are copied into UI objects. A chart
 replacement must preserve that shared input/clear API. No renderer internals or
 provider parsing are implemented by the shell.
@@ -56,7 +62,7 @@ synchronous work before the reader returns its Task. The session owns and dispos
 the stream only after reading actually ends. It then releases the selected storage
 handle. Closing marks the session closed, releases the chart reference and requests
 cancellation without running reader cancellation callbacks on the UI thread. Late
-picker selections, read results and errors cannot update the closed window. A reader
+picker selections, read results and errors cannot update a closed chart document. A reader
 that ignores cancellation must still finish before its borrowed stream is disposed;
 the UI does not wait for it. Production readers must honor the shared cancellation
 contract. Unexpected exceptions are reported distinctly from format failures and

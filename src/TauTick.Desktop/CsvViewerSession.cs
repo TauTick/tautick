@@ -12,12 +12,20 @@ public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, IC
 
     public event Action? Changed;
     public BarDataset? Dataset { get; private set; }
+    public CsvInputReference? InputReference { get; private set; }
     public bool IsBusy { get; private set; }
     public bool IsClosed { get; private set; }
     public string Status { get; private set; } = "Ready";
     public string? Error { get; private set; }
 
-    public async Task OpenAsync()
+    public Task OpenAsync() => OpenCoreAsync(picker.PickAsync, null);
+
+    public Task RestoreAsync(CsvInputReference input) => OpenCoreAsync(() =>
+        Task.FromResult<CsvFile?>(new CsvFile(Path.GetFileName(input.Path),
+            () => Task.FromResult<Stream>(new FileStream(input.Path, FileMode.Open, FileAccess.Read, FileShare.Read)),
+            localPath: input.Path)), input);
+
+    private async Task OpenCoreAsync(Func<Task<CsvFile?>> select, CsvInputReference? expected)
     {
         Dispatcher.UIThread.VerifyAccess();
         if (IsBusy || IsClosed) return;
@@ -33,7 +41,7 @@ public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, IC
             // Capture the UI's import configuration once for this attempt, before any worker work.
             var reader = createReader();
             // Native pickers have no cancellation token. A late selection is disposed and ignored on close.
-            using var file = await picker.PickAsync();
+            using var file = await select();
             if (IsClosed) return;
             if (file is null)
             {
@@ -44,20 +52,19 @@ public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, IC
             Changed?.Invoke();
             // Move BOTH stream opening and the reader's synchronous prefix/CPU work off the UI thread.
             // Keep the stream alive until the reader really finishes, including after cancellation.
-            var result = await Task.Run(async () =>
+            var loaded = await Task.Run(async () =>
             {
                 token.ThrowIfCancellationRequested();
-                await using var input = await file.OpenReadAsync().ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-                return await reader.ReadAsync(input, file.Name, token).ConfigureAwait(false);
+                return await CsvInputSnapshot.ReadAsync(file, reader, expected, token).ConfigureAwait(false);
             }, token);
             // Finish releasing the selection before committing a new dataset; disposal failures retain the old one.
             file.Dispose();
             if (IsClosed || token.IsCancellationRequested) return;
-            switch (result)
+            switch (loaded.Result)
             {
                 case BarReadResult.Success success:
                     Dataset = success.Dataset;
+                    InputReference = loaded.Input;
                     Status = "Loaded.";
                     break;
                 case BarReadResult.Failure failure:
@@ -78,6 +85,7 @@ public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, IC
             if (IsClosed) return;
             Error = exception switch
             {
+                ChangedCsvInputException => "The saved CSV has changed. Its saved chart was not loaded. Use Open CSV to explicitly accept the current file.",
                 FileNotFoundException or DirectoryNotFoundException => "The selected file no longer exists. Choose it again or select another file.",
                 UnauthorizedAccessException => "The selected file cannot be read. Check its access permissions.",
                 IOException => "The selected file could not be read. It may be unavailable or in use.",
@@ -105,6 +113,7 @@ public sealed class CsvViewerSession(Func<IHistoricalBarReader> createReader, IC
         IsClosed = true;
         IsBusy = false;
         Dataset = null;
+        InputReference = null;
         // CancelAsync marks the token immediately and executes reader callbacks off the UI thread.
         if (_operation is { } operation) _ = ObserveCancellationAsync(operation);
     }
