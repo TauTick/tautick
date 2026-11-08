@@ -395,7 +395,8 @@
         "type": "Project",
         "dependencies": {
           "Avalonia": "[12.1.5, )",
-          "TauTick.MarketData": "[1.0.0, )"
+          "TauTick.MarketData": "[1.0.0, )",
+          "TauTick.Studies": "[1.0.0, )"
         }
       },
       "tautick.desktop": {
@@ -414,6 +415,12 @@
       },
       "tautick.marketdata": {
         "type": "Project"
+      },
+      "tautick.studies": {
+        "type": "Project",
+        "dependencies": {
+          "TauTick.MarketData": "[1.0.0, )"
+        }
       },
       "tautick.syntheticdata": {
         "type": "Project",

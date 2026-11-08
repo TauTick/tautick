@@ -24,7 +24,7 @@ TauTick is being designed around a modular .NET core that can support desktop, r
 
 ## Current workspace
 
-The native **Avalonia** workspace hosts independent candle charts in named workspace tabs, split panes and detached windows. Charts support pan/zoom, inspection, fit-to-data and explicit contract-year CSV imports. Layouts and verified input references restore on restart. Indicators are the next companion task. See the [workspace guide](docs/workspace.md) for controls, the chart-host interface and validation limits.
+The native **Avalonia** workspace hosts independent candle charts in named workspace tabs, split panes and detached windows. Charts support pan/zoom, inspection, fit-to-data and explicit contract-year CSV imports. Layouts and verified input references restore on restart. The [indicator manager](docs/indicators.md) adds independent bar-based VWAP studies with explicit anchors and workspace persistence. See the [workspace guide](docs/workspace.md) for controls, the chart-host interface and validation limits.
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 

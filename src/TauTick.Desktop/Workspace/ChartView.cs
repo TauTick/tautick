@@ -18,6 +18,7 @@ internal sealed class ChartView : UserControl
     private readonly TextBlock _status = new() { Name = "LoadStatus", FontSize = 11 };
     private readonly TextBlock _error = new() { Name = "LoadError", Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _notice = new() { TextWrapping = TextWrapping.Wrap, FontSize = 11 };
+    private readonly StackPanel _legend = new() { Spacing = 2 };
     private bool _refreshing;
     private bool _attached;
 
@@ -32,8 +33,14 @@ internal sealed class ChartView : UserControl
         actions.Children.Add(_year);
         actions.Children.Add(_open);
         actions.Children.Add(_fit);
+        var indicators = new Button { Name = "OpenIndicators", Content = "Indicators…" };
+        indicators.Click += (_, _) => document.OpenIndicators();
+        actions.Children.Add(indicators);
+        var indicatorMenu = new MenuItem { Header = "Indicators… (Ctrl+I)" };
+        indicatorMenu.Click += (_, _) => document.OpenIndicators();
+        Chart.ContextMenu = new ContextMenu { ItemsSource = new[] { indicatorMenu } };
         if (commands?.Invoke() is { } menu) actions.Children.Add(menu);
-        var header = new StackPanel { Spacing = 3, Margin = new(6), Children = { actions, _summary, _status, _error, _notice } };
+        var header = new StackPanel { Spacing = 3, Margin = new(6), Children = { actions, _summary, _status, _error, _notice, _legend } };
         var panel = new DockPanel();
         DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
         panel.Children.Add(header);
@@ -56,6 +63,7 @@ internal sealed class ChartView : UserControl
                 document.Activate?.Invoke();
                 await document.Session.OpenAsync();
             }
+            else if (e.Key == Key.I) { e.Handled = true; document.OpenIndicators(); }
             else if (e.Key == Key.D0)
             {
                 e.Handled = true;
@@ -73,6 +81,7 @@ internal sealed class ChartView : UserControl
         if (_attached) return;
         _attached = true;
         _document.Changed += Refresh;
+        _document.Studies.Changed += RefreshStudies;
         _document.FitRequested += Chart.FitToData;
         Chart.VisibleTimeRangeChanged += RangeChanged;
         _document.WindowOwner = GetWindow;
@@ -84,11 +93,46 @@ internal sealed class ChartView : UserControl
     {
         _attached = false;
         _document.Changed -= Refresh;
+        _document.Studies.Changed -= RefreshStudies;
         _document.FitRequested -= Chart.FitToData;
         Chart.VisibleTimeRangeChanged -= RangeChanged;
         if (_document.WindowOwner == GetWindow) _document.WindowOwner = null;
         Chart.ClearDataset();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    private void RefreshStudies()
+    {
+        Chart.SetStudies(_document.Studies.Visuals);
+        _legend.Children.Clear();
+        foreach (var instance in _document.Studies.Instances)
+        {
+            var row = new WrapPanel();
+            var description = instance.ToString();
+            if (instance.Saved.Descriptor.TypeId == TauTick.Studies.VwapDefinition.Id)
+            {
+                try
+                {
+                    var settings = System.Text.Json.JsonSerializer.Deserialize<TauTick.Studies.VwapSettings>(instance.Saved.Descriptor.Settings);
+                    description += $" · {settings?.Price} · anchor " + (settings?.AnchorUtcTicks is { } ticks
+                        ? new DateTimeOffset(ticks, TimeSpan.Zero).ToString("u") : "dataset start") + " · bar estimate";
+                }
+                catch { description += " · unsupported settings"; }
+            }
+            var label = new TextBlock { Text = description, FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+            ToolTip.SetTip(label, instance.Message);
+            row.Children.Add(label);
+            foreach (var (title, action) in new (string, Action)[] {
+                ("Settings", () => _document.OpenIndicators(instance)),
+                (instance.Saved.Descriptor.Visible ? "Hide" : "Show", () => _document.Studies.SetVisible(instance, !instance.Saved.Descriptor.Visible)),
+                ("↑", () => _document.Studies.Move(instance, -1)), ("↓", () => _document.Studies.Move(instance, 1)),
+                ("Remove", () => _document.Studies.Remove(instance)) })
+            {
+                var button = new Button { Content = title, Padding = new(5, 2), Margin = new(2, 0) };
+                button.Click += (_, _) => action(); row.Children.Add(button);
+            }
+            _legend.Children.Add(row);
+        }
     }
 
     private Window? GetWindow() => TopLevel.GetTopLevel(this) as Window;
@@ -121,5 +165,6 @@ internal sealed class ChartView : UserControl
             _notice.IsVisible = _document.Notice is not null;
         }
         finally { _refreshing = false; }
+        RefreshStudies();
     }
 }

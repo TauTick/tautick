@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using TauTick.Desktop.Studies;
 using Avalonia.Threading;
 using TauTick.Adapters.Databento;
 using TauTick.Charting;
@@ -33,6 +34,33 @@ public sealed class ChartDocument : IChartDocument
         Session.Changed += SessionChanged;
     }
 
+    private ChartStudies? _studies;
+    private IndicatorManager? _indicatorManager;
+    public ChartStudies Studies
+    {
+        get
+        {
+            if (_studies is null)
+            {
+                _studies = new ChartStudies(this);
+                RegisterSettings(_studies);
+            }
+            return _studies;
+        }
+    }
+    internal void OpenIndicators(StudyInstance? instance = null)
+    {
+        if (IsClosed || WindowOwner?.Invoke() is not { } owner) return;
+        Activate?.Invoke();
+        if (_indicatorManager is null)
+        {
+            _indicatorManager = new IndicatorManager(this);
+            _indicatorManager.Closed += (_, _) => _indicatorManager = null;
+            _indicatorManager.Show(owner);
+        }
+        _indicatorManager.Select(instance);
+        _indicatorManager.Activate();
+    }
     public Guid Id { get; }
     public BarDataset? Dataset => Session.Dataset;
     public ChartTimeRange? VisibleTimeRange => _range;
@@ -89,7 +117,17 @@ public sealed class ChartDocument : IChartDocument
                 Notice = $"Saved settings for {participant.Key} could not be applied; the saved value is retained.";
             }
         }
+        RefreshSettingsNotice();
         Changed?.Invoke();
+    }
+
+    private void RefreshSettingsNotice()
+    {
+        const string pending = "Saved feature settings are retained until their chart feature is available.";
+        if (_unappliedSettings.Count > 0)
+            Notice = "Saved feature settings could not be applied; the saved value is retained.";
+        else if (_settings.Keys.Any(key => !_participants.ContainsKey(key))) Notice = pending;
+        else if (Notice == pending) Notice = null;
     }
 
     internal ChartState Capture()
@@ -107,7 +145,11 @@ public sealed class ChartDocument : IChartDocument
         IsRestoring = state.Input is not null;
         _year = state.ContractYearText;
         foreach (var (key, value) in state.Settings) _settings[key] = value;
-        if (_settings.Count > 0) Notice = "Saved feature settings are retained until their chart feature is available.";
+        foreach (var (key, participant) in _participants)
+            if (_settings.TryGetValue(key, out var value))
+                try { participant.Restore(value); }
+                catch (Exception) { _unappliedSettings.Add(key); }
+        RefreshSettingsNotice();
         _unresolvedInput = state.Input;
         _restoreYear = _unresolvedYear = state.InputContractYear;
         _range = state.TimeRange;

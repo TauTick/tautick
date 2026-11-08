@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/TauTick.Studies/TauTick.Studies.csproj" />
     <Project Path="src/TauTick.MarketData/TauTick.MarketData.csproj" />
     <Project Path="src/TauTick.Adapters.Databento/TauTick.Adapters.Databento.csproj" />
     <Project Path="src/TauTick.Charting/TauTick.Charting.csproj" />

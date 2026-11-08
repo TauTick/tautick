@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using TauTick.MarketData;
+using TauTick.Charting.Studies;
 
 namespace TauTick.Charting;
 
@@ -10,6 +11,28 @@ namespace TauTick.Charting;
 public sealed class BarChart : Control
 {
     private BarDataset? _dataset;
+    private IReadOnlyList<StudyVisual> _studies = Array.Empty<StudyVisual>();
+    public void SetStudies(IEnumerable<StudyVisual> studies)
+    {
+        VerifyAccess();
+        _studies = studies.Where(s => ReferenceEquals(s.Dataset, _dataset)).ToArray();
+        InvalidateLayout();
+    }
+    public IReadOnlyList<StudyVisual> Studies => _studies;
+    private double ReservedHeight => Math.Min(Bounds.Height / 3, _studies.Sum(s => Math.Clamp(s.Renderer.ReservedHeight, 0, 200)));
+    private StudyDrawingContext StudyContext(ChartLayout layout, int index)
+    {
+        var viewport = _viewport!;
+        var total = _studies.Sum(s => Math.Clamp(s.Renderer.ReservedHeight, 0, 200));
+        var scale = total > 0 ? ReservedHeight / total : 0;
+        var top = Bounds.Height - ReservedHeight + _studies.Take(index).Sum(s => Math.Clamp(s.Renderer.ReservedHeight, 0, 200)) * scale;
+        return new(layout.Plot, new(layout.Plot.Right, layout.Plot.Top, Bounds.Width - layout.Plot.Right, layout.Plot.Height),
+            new(layout.Plot.Left, layout.Plot.Bottom, layout.Plot.Width, 54), new(0, 0, 14, Bounds.Height),
+            new(layout.Plot.Left, top, layout.Plot.Width, Math.Clamp(_studies[index].Renderer.ReservedHeight, 0, 200) * scale),
+            _topLevel?.RenderScaling ?? 1, index, viewport.StartTicks, viewport.EndTicks, viewport.Low, viewport.High,
+            Typeface.Default, ChartPalette.Foreground, ChartPalette.Background, layout.Coordinates.X,
+            layout.Coordinates.Y, layout.Visible.Start, layout.Visible.End);
+    }
     private ChartViewport? _viewport;
     private ChartViewport? _fittedViewport;
     private ChartLayout? _layout;
@@ -79,6 +102,7 @@ public sealed class BarChart : Control
         ArgumentNullException.ThrowIfNull(dataset);
         var viewport = ChartViewport.Fit(dataset);
         ResetInteraction();
+        _studies = Array.Empty<StudyVisual>();
         _dataset = dataset;
         _viewport = _fittedViewport = viewport;
         InvalidateLayout();
@@ -90,6 +114,7 @@ public sealed class BarChart : Control
     {
         VerifyAccess();
         ResetInteraction();
+        _studies = Array.Empty<StudyVisual>();
         _dataset = null;
         _viewport = _fittedViewport = null;
         InvalidateLayout();
@@ -135,7 +160,7 @@ public sealed class BarChart : Control
         if (!_layoutValid || size != _layoutSize || scaling != _layoutScaling)
         {
             _layout = _dataset is not null && _viewport is not null
-                ? ChartLayout.Create(_dataset, _viewport, size, scaling) : null;
+                ? ChartLayout.Create(_dataset, _viewport, new Size(size.Width, size.Height - ReservedHeight), scaling) : null;
             _layoutSize = size;
             _layoutScaling = scaling;
             _layoutValid = true;
@@ -183,7 +208,10 @@ public sealed class BarChart : Control
             return;
         var position = e.GetPosition(this);
         var layout = PrepareLayout();
-        if (layout is null || !InsidePlot(layout, position)) return;
+        if (layout is null) return;
+        for (var i = _studies.Count - 1; i >= 0; i--)
+            if (_studies[i].Renderer.PointerPressed(position, StudyContext(layout, i))) { e.Handled = true; return; }
+        if (!InsidePlot(layout, position)) return;
         if (e.ClickCount == 2)
         {
             FitToData();
@@ -213,6 +241,14 @@ public sealed class BarChart : Control
             else EndDrag();
         }
         UpdateInspection(position);
+        if (PrepareLayout() is { } prepared)
+        {
+            string? hit = null;
+            for (var i = _studies.Count - 1; i >= 0 && hit is null; i--)
+                hit = _studies[i].Renderer.HitTest(position, StudyContext(prepared, i));
+            if (!Equals(ToolTip.GetTip(this), hit)) ToolTip.SetTip(this, hit);
+        }
+
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
@@ -277,6 +313,7 @@ public sealed class BarChart : Control
         _inspectionPosition = null;
         _inspectedIndex = -1;
         _inspectionText = null;
+        ToolTip.SetTip(this, null);
         InvalidateVisual();
     }
 
@@ -328,6 +365,7 @@ public sealed class BarChart : Control
         foreach (var label in layout.Prices) context.DrawText(label.Text, label.Origin);
         foreach (var label in layout.Times) context.DrawText(label.Text, label.Origin);
         context.DrawText(_utc, new Point(layout.Plot.Right + 8, layout.Plot.Bottom + 10));
+        for (var i = 0; i < _studies.Count; i++) _studies[i].Renderer.Draw(context, StudyContext(layout, i));
         DrawInspection(context, layout);
     }
 
@@ -342,7 +380,8 @@ public sealed class BarChart : Control
         if (InspectedBar is not { } bar) return;
         if (_inspectionText is null)
         {
-            _inspectionText = ChartPalette.Text(BarInspection.Format(bar));
+            var studyValues = _studies.Select(s => s.Renderer.Inspect(_inspectedIndex) is { } value ? $"{s.InstanceId.ToString()[..6]} · {value}" : null).Where(s => s is not null);
+            _inspectionText = ChartPalette.Text(BarInspection.Format(bar) + string.Concat(studyValues.Select(s => "\n" + s)));
             _inspectionText.MaxTextWidth = Math.Max(1, layout.Plot.Width - 20);
             // On a short/narrow chart, use the control's available space before giving up detail.
             if (_inspectionText.Height + 16 > layout.Plot.Height)
