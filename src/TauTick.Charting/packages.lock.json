@@ -30,6 +30,12 @@
       },
       "tautick.marketdata": {
         "type": "Project"
+      },
+      "tautick.studies": {
+        "type": "Project",
+        "dependencies": {
+          "TauTick.MarketData": "[1.0.0, )"
+        }
       }
     }
   }

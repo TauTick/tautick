@@ -289,3 +289,8 @@ the accepted dataset and minimum bar interval; a full-range restore uses the
 existing fit behavior. This API does not read files or rebuild bars. The desktop
 [chart-host interface](workspace.md#chart-host-handoff-for-tau-9) owns lifetime and
 feature settings; consumers must not keep a control as the chart's identity.
+
+## Study presentation
+
+The [indicator contract](indicators.md#extension-contracts-and-ownership) adds prepared custom drawing,
+inspection and reserved regions without provider access during render.

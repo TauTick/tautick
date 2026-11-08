@@ -138,6 +138,7 @@ latency or Windows compatibility. Full-desktop/Wayland checks remain separate.
 | --- | --- |
 | `src/TauTick.MarketData` | Shared immutable contracts. Coordinate changes here across consumers. No UI or provider dependencies. |
 | `src/TauTick.Adapters.Databento` | `DatabentoMinuteCsvReader` implements `IHistoricalBarReader`, referencing only MarketData. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV input and explicit contract-year configuration. |
+| `src/TauTick.Studies` | UI-independent built-in calculation contracts and bar-based VWAP. See [indicators](indicators.md). |
 | `src/TauTick.Charting` | Avalonia `BarChart` with custom candles, UTC/price axes, fit-to-data and resize/DPI handling behind the dataset input/clear API. Pan/zoom and inspection are implemented; visible-range state supports workspace rehosting. No file reads or market reconstruction. |
 | `src/TauTick.Desktop` | Dockable workspace, stable chart documents/host interface, verified layout/input restoration, production CSV composition and per-chart loading/error/cancellation. No synthetic-data dependency. |
 | `samples/TauTick.SyntheticData` | Development fixture and fake reader; only depends on MarketData. The demo and tests consume it. It is not a source adapter. |
@@ -145,13 +146,13 @@ latency or Windows compatibility. Full-desktop/Wayland checks remain separate.
 | `tests/TauTick.Charting.Tests` | Coordinates, visible ranges, cached layout, Skia raster checks and reader/result/chart handoff under Avalonia.Headless. |
 | `tests/TauTick.Charting.Native` | Isolated synthetic chart host for native visual checks and software redraw measurements; outside the solution. |
 | `tests/TauTick.Desktop.Tests` | Workspace layout/identity/restoration and chart transitions, retained data/metadata, cancellation, resource ownership and UI responsiveness under Avalonia.Headless. |
-| `tests/TauTick.Desktop.Native` | Legacy controlled shell scenarios and opt-in real CSV integration measurements; outside the solution. |
+| `tests/TauTick.Desktop.Native` | Controlled shell scenarios, opt-in real CSV integration measurements and the [synthetic study demo](indicators.md#native-development-study); outside the solution. |
 | `tests/TauTick.Adapters.Databento.Tests` | Synthetic CSV validation, precision, cancellation and stream ownership. No UI dependency. |
 | `samples/TauTick.Databento.Verify` | Explicit local-file adapter verification; never part of deterministic test execution. |
 
 The graph is acyclic: adapters → MarketData, chart → MarketData, synthetic data →
 MarketData, desktop → adapter + chart + MarketData. Only the chart,
-desktop and their validation hosts use Avalonia. No speculative calculations project exists.
+desktop and their validation hosts use Avalonia. The Studies project depends only on MarketData; Charting consumes its prepared results.
 Future test projects under `tests/` inherit the common test packages/settings.
 
 ## Bar and dataset contract

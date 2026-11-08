@@ -4,6 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../StudyFixtures/SyntheticLevelStudy.cs" Link="SyntheticLevelStudy.cs" />
     <ProjectReference Include="../../src/TauTick.Desktop/TauTick.Desktop.csproj" />
     <ProjectReference Include="../../samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
   </ItemGroup>

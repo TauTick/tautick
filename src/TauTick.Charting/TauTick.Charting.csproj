@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../TauTick.Studies/TauTick.Studies.csproj" />
     <ProjectReference Include="../TauTick.MarketData/TauTick.MarketData.csproj" />
     <PackageReference Include="Avalonia" />
   </ItemGroup>

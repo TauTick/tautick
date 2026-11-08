@@ -6,6 +6,10 @@ using Avalonia.VisualTree;
 using TauTick.Desktop;
 using TauTick.MarketData;
 using TauTick.SyntheticData;
+using TauTick.Desktop.Studies;
+using TauTick.Desktop.Workspace;
+using TauTick.Studies;
+using TauTick.TestStudies;
 
 namespace TauTick.Desktop.Native;
 
@@ -28,6 +32,27 @@ internal sealed class NativeApp : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (desktop.Args is ["--study-demo"])
+            {
+                // Real workspace and production reader; only the explicitly marked study is synthetic.
+                var demo = new MainWindow(notice: "DEVELOPMENT: synthetic level graphics; not market-derived. Open a CSV normally.");
+                demo.Opened += (_, _) =>
+                {
+                    var document = (ChartDocument)demo.ChartHost.ActiveChart!;
+                    document.Studies.Register(new(new SyntheticLevels(), (_, result, _) =>
+                    {
+                        var renderer = new SyntheticRenderer((Levels)result);
+                        renderer.Pressed += () => Console.WriteLine("SYNTHETIC_REGION_PRESSED");
+                        renderer.Released += () => Console.WriteLine("SYNTHETIC_RENDERER_DISPOSED");
+                        return renderer;
+                    }));
+                    document.Studies.Add("test.synthetic-levels");
+                    document.Studies.Add(VwapDefinition.Id);
+                };
+                desktop.MainWindow = demo;
+                base.OnFrameworkInitializationCompleted();
+                return;
+            }
             if (desktop.Args is ["--measure", var reference, var year])
             {
                 desktop.MainWindow = ViewerMeasurement.Create(reference, int.Parse(year, System.Globalization.CultureInfo.InvariantCulture));
