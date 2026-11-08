@@ -17,6 +17,6 @@ public sealed class NativeCsvFilePicker(Window owner) : ICsvFilePicker
         if (files.Count == 0) return null;
         var file = files[0];
         foreach (var extra in files.Skip(1)) extra.Dispose();
-        return new CsvFile(file.Name, file.OpenReadAsync, file.Dispose);
+        return new CsvFile(file.Name, file.OpenReadAsync, file.Dispose, file.TryGetLocalPath());
     }
 }

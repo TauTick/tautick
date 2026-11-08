@@ -97,7 +97,7 @@ trap 'kill "$TAUTICK_WM_PID" 2>/dev/null || true' EXIT
 dotnet src/TauTick.Desktop/bin/Debug/net10.0/TauTick.Desktop.dll >"$TAUTICK_UI/viewer.log" 2>&1 &
 TAUTICK_APP_PID=$!
 TAUTICK_WINDOW=$(timeout 20s xdotool search --sync --onlyvisible \
-  --pid "$TAUTICK_APP_PID" --name '^TauTick — CSV viewer$')
+  --pid "$TAUTICK_APP_PID" --name '^TauTick — Workspace$')
 xdotool windowactivate --sync "$TAUTICK_WINDOW"
 ```
 
@@ -107,7 +107,8 @@ bounds and expected text/state. The GTK picker is a separate accessible applicat
 with the same PID: Ctrl+L, type a clearly synthetic CSV's absolute path, then Return.
 Full-desktop portal dialogs may need different targeting.
 
-The chart exposes one `BarChart` surface. Use its current screen bounds for
+Each chart exposes a `BarChart` surface; scope repeated control IDs to the intended
+chart tab or window. Dock tab automation IDs are stable view/workspace GUIDs. Use its current screen bounds for
 `xdotool mousemove`, `click` (1 primary, 4/5 wheel), `mousedown`/`mouseup`, `type`
 and `key`; omit the `--window` input option to use XTEST. Capture native pixels:
 
@@ -137,13 +138,13 @@ latency or Windows compatibility. Full-desktop/Wayland checks remain separate.
 | --- | --- |
 | `src/TauTick.MarketData` | Shared immutable contracts. Coordinate changes here across consumers. No UI or provider dependencies. |
 | `src/TauTick.Adapters.Databento` | `DatabentoMinuteCsvReader` implements `IHistoricalBarReader`, referencing only MarketData. See the [adapter guide](../src/TauTick.Adapters.Databento/README.md) for supported CSV input and explicit contract-year configuration. |
-| `src/TauTick.Charting` | Avalonia `BarChart` with custom candles, UTC/price axes, fit-to-data and resize/DPI handling behind the dataset input/clear API. Interactions remain future work. No file reads or market reconstruction. |
-| `src/TauTick.Desktop` | Production reader/chart composition, explicit contract year, native picker, loading/error/cancellation UI and fit action. No synthetic-data dependency. |
+| `src/TauTick.Charting` | Avalonia `BarChart` with custom candles, UTC/price axes, fit-to-data and resize/DPI handling behind the dataset input/clear API. Pan/zoom and inspection are implemented; visible-range state supports workspace rehosting. No file reads or market reconstruction. |
+| `src/TauTick.Desktop` | Dockable workspace, stable chart documents/host interface, verified layout/input restoration, production CSV composition and per-chart loading/error/cancellation. No synthetic-data dependency. |
 | `samples/TauTick.SyntheticData` | Development fixture and fake reader; only depends on MarketData. The demo and tests consume it. It is not a source adapter. |
 | `tests/TauTick.MarketData.Tests` | Model validity, snapshot ownership, and implemented fake-reader contract behavior. |
 | `tests/TauTick.Charting.Tests` | Coordinates, visible ranges, cached layout, Skia raster checks and reader/result/chart handoff under Avalonia.Headless. |
 | `tests/TauTick.Charting.Native` | Isolated synthetic chart host for native visual checks and software redraw measurements; outside the solution. |
-| `tests/TauTick.Desktop.Tests` | Shell transitions, retained data/metadata, cancellation, resource ownership and UI responsiveness under Avalonia.Headless. |
+| `tests/TauTick.Desktop.Tests` | Workspace layout/identity/restoration and chart transitions, retained data/metadata, cancellation, resource ownership and UI responsiveness under Avalonia.Headless. |
 | `tests/TauTick.Desktop.Native` | Legacy controlled shell scenarios and opt-in real CSV integration measurements; outside the solution. |
 | `tests/TauTick.Adapters.Databento.Tests` | Synthetic CSV validation, precision, cancellation and stream ownership. No UI dependency. |
 | `samples/TauTick.Databento.Verify` | Explicit local-file adapter verification; never part of deterministic test execution. |

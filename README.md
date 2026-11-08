@@ -22,9 +22,9 @@ Rather than treating discretionary chart analysis and quantitative research as s
 
 TauTick is being designed around a modular .NET core that can support desktop, research, data, and external-platform integrations.
 
-## First milestone
+## Current workspace
 
-The native **Avalonia** viewer opens a local Databento minute-bar CSV and displays candles with price and UTC time axes, fit-to-data and resizing. Pan/zoom, crosshairs and indicators are later work.
+The native **Avalonia** workspace hosts independent candle charts in named workspace tabs, split panes and detached windows. Charts support pan/zoom, inspection, fit-to-data and explicit contract-year CSV imports. Layouts and verified input references restore on restart. Indicators are the next companion task. See the [workspace guide](docs/workspace.md) for controls, the chart-host interface and validation limits.
 
 Use a custom chart control with Avalonia/Skia drawing. Keep source adapters, market calculations and chart presentation separate so they can be developed and tested independently. Later, stretching the chart should reveal footprint detail for the same bars when suitable data is available; the initial OHLCV sample does not contain that detail.
 
@@ -43,7 +43,7 @@ dotnet test TauTick.slnx --no-build --no-restore
 dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-Download the small public minute CSV using the [sample-data guide](docs/sample-data/README.md), outside the checkout. The window starts empty: enter the known **full contract year** (**2025** for the verified ESZ5 sample), then choose **Open CSV**. Short symbols do not identify a decade, so the application does not guess from a filename or recording date. The verified sample contains 960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit to data** restores the full accepted range. Linux needs a graphical X11/XWayland session. The public sample needs no account or credentials; ordinary tests use only synthetic fixtures.
+Download the small public minute CSV using the [sample-data guide](docs/sample-data/README.md), outside the checkout. On first launch the workspace starts with an empty chart: enter the known **full contract year** (**2025** for the verified ESZ5 sample), then choose **Open CSV**. Short symbols do not identify a decade, so the application does not guess from a filename or recording date. The verified sample contains 960 M1 bars over **2025-09-22 [00:00, 16:00) UTC**, a partial session. **Fit** restores the full accepted range. Linux needs a graphical X11/XWayland session. The public sample needs no account or credentials; ordinary tests use only synthetic fixtures.
 
 Agents can also exercise the native viewer and visually inspect charts on a Linux
 machine without a graphical login. See [native Linux visual checks](docs/development.md#native-visual-checks-on-linux) for setup, input, capture and cleanup.
@@ -70,6 +70,8 @@ See the [recorded-session research brief](docs/recorded-session-research.md) for
 Research on existing trading platforms is maintained in [trading-platform-research](https://github.com/mitjasiska/trading-platform-research). See [how to use this research when planning tasks](docs/platform-research.md) for the LEAN and NautilusTrader reports, relevant topics, and guidance for agents.
 
 ## Status
+
+The dockable workspace is implemented; see its [validation record](docs/workspace-validation.md) for current checks and outstanding Windows/physical monitor coverage. The following CSV integration results describe the earlier milestone.
 
 Production CSV-to-candles integration is implemented. Release builds and 163 tests pass on Windows and Linux. Native loading, error recovery, replacement, fit, resizing and normal close were exercised on Windows at 100% and Ubuntu/WSLg at 100% and 200% scaling; Linux closing-during-load was also exercised. Windows high-DPI and closing-during-load interaction remain unverified. See the [validation report](docs/mvp-validation.md) for measured scope and limitations. Complete cross-platform interactive acceptance and presented-frame performance are not claimed.
 

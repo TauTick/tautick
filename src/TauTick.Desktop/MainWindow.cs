@@ -1,120 +1,109 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Avalonia.Media;
-using TauTick.Adapters.Databento;
 using TauTick.Charting;
+using TauTick.Desktop.Workspace;
 using TauTick.MarketData;
 
 namespace TauTick.Desktop;
 
 public sealed class MainWindow : Window
 {
-    private readonly Button _open = new() { Name = "OpenCsv", Content = "Open CSV…" };
-    private readonly Button _fit = new() { Name = "FitData", Content = "Fit to data" };
-    private readonly TextBox _year = new() { Name = "ContractYear", PlaceholderText = "e.g. 2025", Width = 130, MaxLength = 4 };
-    private readonly TextBlock _summary = new() { Name = "DatasetSummary", TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _status = new() { Name = "LoadStatus", TextWrapping = TextWrapping.Wrap };
-    private readonly TextBlock _error = new() { Name = "LoadError", TextWrapping = TextWrapping.Wrap, Foreground = Brushes.IndianRed };
-    private readonly ProgressBar _loading = new() { IsIndeterminate = true, Height = 3 };
-    private readonly ScrollViewer _errorPanel;
-    private readonly bool _production;
+    private readonly WorkspaceStore? _store;
+    private readonly TextBlock _status = new() { Name = "WorkspaceStatus", TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 11 };
+    private bool _allowClose;
+    private bool _saving;
+    private bool _loadingLayout;
+    private bool _closeAfterLoad;
+    private readonly Button _discardAndClose = new() { Content = "Close without saving", IsVisible = false };
+    private WindowGeometry? _normalBounds;
 
-    // An explicit reader is a development/test seam; normal startup always uses the real adapter.
-    public MainWindow(IHistoricalBarReader? reader = null, ICsvFilePicker? picker = null, string? notice = null)
+    // Explicit readers/pickers remain development seams. Persistence is enabled by the app composition.
+    public MainWindow(IHistoricalBarReader? reader = null, ICsvFilePicker? picker = null, string? notice = null, WorkspaceStore? store = null)
     {
-        Title = "TauTick — CSV viewer";
-        Width = 1000;
-        Height = 680;
-        MinWidth = 560;
-        MinHeight = 440;
-        Chart = new BarChart();
-        _production = reader is null;
-        Session = new CsvViewerSession(
-            reader is null ? () => new DatabentoMinuteCsvReader(ContractYear!.Value) : () => reader,
-            picker ?? new NativeCsvFilePicker(this));
-        _errorPanel = new ScrollViewer { MaxHeight = 100, Content = _error };
-        var actions = new WrapPanel
+        Title = "TauTick — Workspace";
+        Width = 1200; Height = 800; MinWidth = 560; MinHeight = 380;
+        _store = store;
+        Controller = new(reader, picker);
+        var add = new Button { Name = "AddWorkspace", Content = "+ Workspace" };
+        var save = new Button { Name = "SaveWorkspace", Content = "Save layout", IsVisible = store is not null };
+        add.Click += (_, _) => Controller.AddWorkspace();
+        save.Click += async (_, _) => await SaveAsync();
+        _discardAndClose.Click += (_, _) => { _allowClose = true; Close(); };
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new(8, 4),
+            Children = { new TextBlock { Text = "TauTick", FontSize = 18, VerticalAlignment = VerticalAlignment.Center }, add, save, _discardAndClose } };
+        var header = new StackPanel { Children = { actions, _status } };
+        _status.Text = notice;
+        _status.IsVisible = notice is not null;
+        var root = new DockPanel();
+        DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
+        root.Children.Add(header);
+        root.Children.Add(Controller.Surface);
+        Content = root;
+        Controller.Changed += () => { if (Controller.Notice is { } text) SetStatus(text); };
+        Opened += async (_, _) =>
         {
-            Orientation = Orientation.Horizontal,
-            Children =
+            TrackBounds();
+            if (_store is null) return;
+            _loadingLayout = true;
+            var loaded = await _store.LoadAsync();
+            _loadingLayout = false;
+            if (Controller.IsClosed) return;
+            if (loaded.Error is { } error) SetStatus(error);
+            if (loaded.State is { } state)
             {
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 8, IsVisible = _production,
-                    Margin = new Thickness(0, 0, 12, 6),
-                    Children = { new TextBlock { Text = "Full contract year", VerticalAlignment = VerticalAlignment.Center }, _year }
-                },
-                _open, _fit
+                state.MainWindow?.Apply(this);
+                var restoring = Controller.RestoreAsync(state);
+                if (_closeAfterLoad) Close();
+                await restoring;
             }
+            else if (_closeAfterLoad) Close();
         };
-        _open.Margin = new Thickness(0, 0, 8, 6);
-        _fit.Margin = new Thickness(0, 0, 0, 6);
-        var header = new StackPanel
+        PositionChanged += (_, _) => TrackBounds();
+        SizeChanged += (_, _) => TrackBounds();
+        Closing += async (_, e) =>
         {
-            Spacing = 10,
-            Children =
-            {
-                new TextBlock { Text = "TauTick", FontSize = 24 },
-                new TextBlock { Text = notice, IsVisible = notice is not null, TextWrapping = TextWrapping.Wrap },
-                new TextBlock
-                {
-                    Text = "Databento minute CSV · Enter the known contract year (2025 for the ESZ5 reference sample).",
-                    IsVisible = _production, TextWrapping = TextWrapping.Wrap
-                },
-                actions, _summary, _status, _loading,
-                _errorPanel
-            }
+            if (_allowClose || _store is null) return;
+            e.Cancel = true;
+            if (_loadingLayout) { _closeAfterLoad = true; return; }
+            if (_saving) return;
+            if (await SaveAsync()) { _allowClose = true; Close(); }
         };
-        var panel = new DockPanel { Margin = new Thickness(20), LastChildFill = true };
-        DockPanel.SetDock(header, Dock.Top);
-        panel.Children.Add(header);
-        panel.Children.Add(new Border
-        {
-            Margin = new Thickness(0, 16, 0, 0), BorderThickness = new Thickness(1),
-            BorderBrush = Brushes.Gray, Child = Chart
-        });
-        Content = panel;
-        _open.Click += async (_, _) => await Session.OpenAsync();
-        _fit.Click += (_, _) => Chart.FitToData();
-        _year.PropertyChanged += (_, change) =>
-        {
-            if (change.Property == TextBox.TextProperty) Refresh();
-        };
-        Session.Changed += Refresh;
-        Closed += (_, _) =>
-        {
-            Session.Changed -= Refresh;
-            Session.Close();
-            Chart.ClearDataset();
-        };
-        Refresh();
+        Closed += (_, _) => Controller.Close();
     }
 
-    public BarChart Chart { get; }
-    public CsvViewerSession Session { get; }
+    internal WorkspaceController Controller { get; }
+    public IChartHost ChartHost => Controller;
+    // Compatibility with the original single-view development hosts; new features use ChartHost.
+    public BarChart Chart => Controller.InitialChart.LatestChart;
+    public CsvViewerSession Session => Controller.InitialChart.Session;
 
-    private int? ContractYear => _year.Text is { Length: 4 } text
-        && text.All(c => c is >= '0' and <= '9')
-        && int.TryParse(text, out var year) && year > 0 ? year : null;
-
-    private void Refresh()
+    public async Task<bool> SaveAsync()
     {
-        // One UI turn publishes the accepted snapshot and its metadata, with no await in between.
-        if (!ReferenceEquals(Chart.Dataset, Session.Dataset))
+        if (_store is null || _saving || _loadingLayout || Controller.IsClosed) return false;
+        _saving = true;
+        try
         {
-            if (Session.Dataset is { } data) Chart.SetDataset(data);
-            else Chart.ClearDataset();
+            var geometry = (_normalBounds ?? new(Position.X, Position.Y, Width, Height, false)) with { Maximized = WindowState == WindowState.Maximized };
+            await _store.SaveAsync(Controller.Capture(geometry));
+            if (!Controller.IsClosed) SetStatus("Layout saved.");
+            _discardAndClose.IsVisible = false;
+            return true;
         }
-        _summary.Text = Session.Dataset is { } accepted
-            ? DatasetSummary.Format(accepted)
-            : "No dataset loaded. Open a local CSV to begin.";
-        _open.IsEnabled = !Session.IsBusy && !Session.IsClosed && (!_production || ContractYear is not null);
-        _year.IsEnabled = !Session.IsBusy && !Session.IsClosed;
-        _fit.IsEnabled = Session.Dataset is not null && !Session.IsClosed;
-        _loading.IsVisible = Session.IsBusy;
-        _status.Text = Session.Status;
-        _error.Text = Session.Error;
-        _errorPanel.IsVisible = Session.Error is not null;
+        catch (Exception)
+        {
+            SetStatus("Layout could not be saved. Check the settings folder and retry Save layout, or close without saving.");
+            _discardAndClose.IsVisible = true;
+            return false;
+        }
+        finally { _saving = false; }
     }
+
+    private void TrackBounds()
+    {
+        if (WindowState == WindowState.Normal && Bounds.Width > 0 && Bounds.Height > 0)
+            _normalBounds = new(Position.X, Position.Y, Bounds.Width, Bounds.Height, false);
+    }
+
+    private void SetStatus(string message) { _status.Text = message; _status.IsVisible = true; }
 }

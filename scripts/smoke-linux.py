@@ -7,6 +7,7 @@ Uses Python's standard library and libX11; no browser or Avalonia.Headless backe
 
 import ctypes as c
 import ctypes.util
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -86,15 +87,20 @@ def main():
                         x.XFree(name)
                     attrs = WindowAttributes()
                     x.XGetWindowAttributes(display, window, c.byref(attrs))
-                    if title == "TauTick — CSV viewer" and attrs.map_state == 2:
+                    if title == "TauTick — Workspace" and attrs.map_state == 2:
                         return window, title, attrs.width, attrs.height
         finally:
             if children:
                 x.XFree(children)
         return None
 
-    with tempfile.TemporaryFile(mode="w+") as log:
-        process = subprocess.Popen(["dotnet", str(app)], cwd=repo, stdout=log, stderr=log)
+    with tempfile.TemporaryFile(mode="w+") as log, tempfile.TemporaryDirectory(prefix="tautick-smoke-") as profile:
+        env = dict(os.environ)
+        for variable, directory in [("XDG_DATA_HOME", "data"), ("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache")]:
+            folder = Path(profile) / directory
+            folder.mkdir(mode=0o700)
+            env[variable] = str(folder)
+        process = subprocess.Popen(["dotnet", str(app)], cwd=repo, stdout=log, stderr=log, env=env)
         try:
             deadline = time.monotonic() + 20
             found = None

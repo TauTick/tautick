@@ -37,6 +37,7 @@ public sealed class CsvViewerTests
         }, () => released++)));
         var window = new MainWindow(reader, picker);
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         try
         {
             window.Session.Changed += () =>
@@ -68,6 +69,7 @@ public sealed class CsvViewerTests
         var picker = new Picker(() => Task.FromResult<CsvFile?>(File()));
         var window = new MainWindow(SuccessReader(), picker);
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         try
         {
             await window.Session.OpenAsync();
@@ -103,6 +105,7 @@ public sealed class CsvViewerTests
             new BarReadResult.Success(next)]);
         var window = new MainWindow(new Reader((_, _, _) => Task.FromResult(outcomes.Dequeue())), new Picker());
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         try
         {
             await window.Session.OpenAsync();
@@ -226,13 +229,15 @@ public sealed class CsvViewerTests
             () => Task.FromResult<Stream>(stream), () => released = true)));
         var window = new MainWindow(reader, picker);
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         var changes = 0;
         window.Session.Changed += () => changes++;
         var attempt = window.Session.OpenAsync();
         var token = await entered.Task.WaitAsync(Timeout);
+        var statusControl = Find<TextBlock>(window, "LoadStatus");
         window.Close();
         var changesAtClose = changes;
-        var statusAtClose = Find<TextBlock>(window, "LoadStatus").Text;
+        var statusAtClose = statusControl.Text;
         Assert.True(token.IsCancellationRequested);
         if (ignoreCancellation) Assert.True(stream.CanRead); // The reader still owns its borrowing interval.
         completion.SetResult(new BarReadResult.Success(SyntheticBars.Create()));
@@ -240,7 +245,7 @@ public sealed class CsvViewerTests
         await window.Session.OpenAsync();
         Assert.Equal(1, picker.Calls);
         Assert.Equal(changesAtClose, changes);
-        Assert.Equal(statusAtClose, Find<TextBlock>(window, "LoadStatus").Text);
+        Assert.Equal(statusAtClose, statusControl.Text);
         Assert.Null(window.Chart.Dataset);
         Assert.Null(window.Session.Dataset);
         Assert.False(window.Session.IsBusy);

@@ -18,7 +18,11 @@ internal static class Program
 
 internal sealed class NativeApp : Application
 {
-    public override void Initialize() => Styles.Add(new FluentTheme());
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+        Styles.Add(new Dock.Avalonia.Themes.Fluent.DockFluentTheme());
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {
@@ -39,6 +43,7 @@ internal sealed class NativeApp : Application
             window.Session.Changed += () =>
             {
                 var session = window.Session;
+                if (session.IsClosed) return;
                 var summary = window.GetVisualDescendants().OfType<TextBlock>()
                     .Single(control => control.Name == "DatasetSummary").Text;
                 Require(ReferenceEquals(session.Dataset, window.Chart.Dataset), "Chart/session mismatch");

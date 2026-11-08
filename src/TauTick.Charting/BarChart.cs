@@ -32,6 +32,30 @@ public sealed class BarChart : Control
     public BarChart() => ClipToBounds = true;
 
     internal ChartViewport? Viewport => _viewport;
+    public event Action? VisibleTimeRangeChanged;
+
+    public ChartTimeRange? VisibleTimeRange
+    {
+        get
+        {
+            VerifyAccess();
+            return _viewport is { } v ? new(v.StartTicks, v.EndTicks) : null;
+        }
+    }
+
+    /// <summary>Restores a saved range only when it is valid for the accepted dataset.</summary>
+    public bool TryRestoreTimeRange(ChartTimeRange range)
+    {
+        VerifyAccess();
+        if (_dataset is null || range.StartUtcTicks < _dataset.Coverage.StartUtc.Ticks
+            || range.EndUtcTicks > _dataset.Coverage.EndUtc.Ticks
+            || range.EndUtcTicks <= range.StartUtcTicks
+            || range.EndUtcTicks - range.StartUtcTicks < _dataset.Bars[0].Interval.Ticks) return false;
+        if (range.StartUtcTicks == _dataset.Coverage.StartUtc.Ticks && range.EndUtcTicks == _dataset.Coverage.EndUtc.Ticks)
+            FitToData();
+        else SetVisibleTimeRange(new(range.StartUtcTicks, TimeSpan.Zero), new(range.EndUtcTicks, TimeSpan.Zero));
+        return true;
+    }
     internal ChartLayout? PreparedLayout => PrepareLayout();
     internal bool IsDragging => _dragPointer is not null;
     internal Point? InspectionPosition => _inspectionPosition;
@@ -58,6 +82,7 @@ public sealed class BarChart : Control
         _dataset = dataset;
         _viewport = _fittedViewport = viewport;
         InvalidateLayout();
+        VisibleTimeRangeChanged?.Invoke();
     }
 
     /// <summary>Releases the chart's reference. Safe to repeat; no dataset owns disposable resources.</summary>
@@ -68,6 +93,7 @@ public sealed class BarChart : Control
         _dataset = null;
         _viewport = _fittedViewport = null;
         InvalidateLayout();
+        VisibleTimeRangeChanged?.Invoke();
     }
 
     /// <summary>Fits the complete accepted dataset without changing its bars or timeframe.</summary>
@@ -78,6 +104,7 @@ public sealed class BarChart : Control
         ResetInteraction();
         _viewport = _fittedViewport;
         InvalidateLayout();
+        VisibleTimeRangeChanged?.Invoke();
     }
 
     // Test/measurement harness access only; normal navigation goes through native pointer input.
@@ -90,6 +117,7 @@ public sealed class BarChart : Control
         ResetInteraction();
         _viewport = new(start.Ticks, end.Ticks, _viewport.Low, _viewport.High);
         InvalidateLayout();
+        VisibleTimeRangeChanged?.Invoke();
     }
 
     private void InvalidateLayout()
@@ -227,6 +255,7 @@ public sealed class BarChart : Control
         if (_viewport is not null && viewport.StartTicks == _viewport.StartTicks && viewport.EndTicks == _viewport.EndTicks) return;
         _viewport = viewport;
         InvalidateLayout();
+        VisibleTimeRangeChanged?.Invoke();
     }
 
     private void EndDrag()

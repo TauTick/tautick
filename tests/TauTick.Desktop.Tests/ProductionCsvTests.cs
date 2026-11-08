@@ -23,6 +23,7 @@ public sealed class ProductionCsvTests
     {
         var window = new MainWindow(picker: new Picker(Csv));
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         try
         {
             Assert.False(Find<Button>(window, "OpenCsv").IsEnabled);
@@ -73,6 +74,7 @@ public sealed class ProductionCsvTests
         var picker = new Picker(Csv);
         var window = new MainWindow(picker: picker);
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         try
         {
             Find<TextBox>(window, "ContractYear").Text = "2025";
@@ -114,6 +116,7 @@ public sealed class ProductionCsvTests
         };
         var window = new MainWindow(picker: picker);
         window.Show();
+        await WorkspaceTestUi.Ready(window);
         Find<TextBox>(window, "ContractYear").Text = "2025";
         var attempt = window.Session.OpenAsync();
         try
