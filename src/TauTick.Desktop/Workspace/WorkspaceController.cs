@@ -1,118 +1,193 @@
+using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Layout;
 using Avalonia.Threading;
-using Dock.Avalonia.Controls;
 using Dock.Model.Avalonia.Controls;
 using Dock.Model.Controls;
 using Dock.Model.Core;
-using Dock.Settings;
 using TauTick.MarketData;
 
 namespace TauTick.Desktop.Workspace;
 
+/// <summary>One live workspace owns windows; windows own tabs; tabs own chart lifetimes.</summary>
 internal sealed class WorkspaceController : IChartHost
 {
-    private readonly List<WorkspaceTab> _tabs = [];
-    private readonly Dictionary<Guid, Document> _workspaceViews = [];
+    private readonly List<WorkspaceWindow> _windows = [];
     private IChartDocument? _active;
     private bool _selecting;
     private bool _restoringLayout;
+    private int _generation;
+    private long _activationOrder;
     internal bool IsClosed { get; private set; }
-    internal WorkspaceDockFactory ShellFactory { get; } = new("tautick-workspaces", true);
-    internal IRootDock Shell { get; private set; }
-    internal DockControl Surface { get; }
-    internal WorkspaceTab? SelectedWorkspace { get; private set; }
-    internal IReadOnlyList<WorkspaceTab> Workspaces => _tabs;
+    internal IReadOnlyList<WorkspaceWindow> Windows => _windows;
+    internal IEnumerable<ContentTab> Tabs => _windows.SelectMany(w => w.Tabs);
+    internal WorkspaceWindow ActiveWindow { get; private set; }
+    internal ContentTab? SelectedTab => ActiveWindow.SelectedTab;
     internal ChartDocument InitialChart { get; }
+    internal string Name { get; set; } = "Workspace";
     internal string? Notice { get; private set; }
+    internal bool PersistenceBusy { get; private set; }
+    internal event Action? PersistenceCompleted;
     internal event Action? Changed;
     public event Action? ActiveChartChanged;
-    public IReadOnlyList<IChartDocument> Charts => _tabs.SelectMany(t => t.Charts.Values).Cast<IChartDocument>().ToArray();
+    public IReadOnlyList<IChartDocument> Charts => Tabs.SelectMany(t => t.Charts.Values).Cast<IChartDocument>().ToArray();
     public IChartDocument? ActiveChart => _active;
+
+    internal bool TryBeginPersistence()
+    {
+        VerifyOpen();
+        if (PersistenceBusy) return false;
+        PersistenceBusy = true;
+        return true;
+    }
+    internal void EndPersistence() { PersistenceBusy = false; PersistenceCompleted?.Invoke(); }
 
     internal WorkspaceController(IHistoricalBarReader? reader = null, ICsvFilePicker? picker = null)
     {
-        DockSettings.CloseFloatingWindowsOnMainWindowClose = false;
-        Shell = ShellFactory.NewRoot();
-        Surface = ShellFactory.Surface(Shell);
-        ShellFactory.ClosedView = RemoveWorkspace;
-        ShellFactory.ActivatedView = id =>
-        {
-            if (_restoringLayout || IsClosed) return;
-            if (_tabs.FirstOrDefault(t => t.Id == id) is not { } tab) return;
-            SelectedWorkspace = tab;
-            SetActive(tab.ActiveChartId is { } chartId ? tab.Charts.GetValueOrDefault(chartId) : tab.Charts.Values.FirstOrDefault());
-        };
-        var initial = AddWorkspace("Workspace 1", false);
+        ActiveWindow = new(Guid.NewGuid());
+        _windows.Add(ActiveWindow);
+        var initial = AddTab(ActiveWindow, "Tab 1");
         InitialChart = AddChart(initial, reader, picker);
     }
 
-    internal WorkspaceTab AddWorkspace(string? name = null, bool addChart = true, Guid? id = null)
+    internal ContentTab AddTab(WorkspaceWindow window, string? name = null)
     {
-        VerifyOpen();
-        var tab = new WorkspaceTab(this, id ?? Guid.NewGuid(), name ?? $"Workspace {_tabs.Count + 1}");
-        _tabs.Add(tab);
-        var view = ShellFactory.View(tab.Id, tab.Name, tab.CreateView);
-        _workspaceViews.Add(tab.Id, view);
-        ShellFactory.AddDockable(ShellFactory.FirstGroup(Shell), view);
-        SelectedWorkspace = tab;
-        if (addChart) AddChart(tab);
-        ShellFactory.Select(view);
-        Changed?.Invoke();
+        VerifyWindow(window);
+        var tab = new ContentTab(this, Guid.NewGuid(), name ?? $"Tab {window.Tabs.Count + 1}");
+        window.Tabs.Add(tab);
+        SelectTab(window, tab);
         return tab;
     }
 
-    internal ChartDocument AddChart(WorkspaceTab? workspace = null, IHistoricalBarReader? reader = null,
+    internal WorkspaceWindow NewWindow(WindowGeometry? geometry = null, bool show = true)
+    {
+        VerifyOpen();
+        var model = new WorkspaceWindow(Guid.NewGuid()) { Geometry = geometry ?? new(150, 150, 1000, 700, false) };
+        _windows.Add(model);
+        if (_windows.FirstOrDefault(w => w.Host is not null)?.Host is { } source)
+        {
+            var host = new MainWindow(this, model, source.Store) { ShowActivated = show };
+            model.Geometry.Apply(host);
+            if (show) host.Show();
+        }
+        return model;
+    }
+
+    internal void SelectTab(WorkspaceWindow window, ContentTab tab)
+    {
+        VerifyWindow(window);
+        if (!window.Tabs.Contains(tab)) throw new InvalidOperationException("Tab belongs to another window.");
+        window.SelectedTabId = tab.Id;
+        ActiveWindow = window;
+        SetActive(tab.ActiveChartId is { } id ? tab.Charts.GetValueOrDefault(id) : null);
+        Changed?.Invoke();
+    }
+
+    internal void ActivateWindow(WorkspaceWindow window)
+    {
+        if (IsClosed || _restoringLayout || !_windows.Contains(window)) return;
+        ActiveWindow = window;
+        window.ActivationOrder = ++_activationOrder;
+        SetActive(window.SelectedTab?.ActiveChartId is { } id ? window.SelectedTab.Charts.GetValueOrDefault(id) : null);
+    }
+
+    internal void MoveTab(ContentTab tab, WorkspaceWindow destination, int insertionIndex)
+    {
+        VerifyWindow(destination);
+        var source = Owner(tab);
+        var oldIndex = source.Tabs.IndexOf(tab);
+        var index = Math.Clamp(insertionIndex, 0, destination.Tabs.Count);
+        if (source == destination && index > oldIndex) index--;
+        if (source == destination && index == oldIndex) { SelectTab(destination, tab); return; }
+        // Release the old visual parent before any destination can attach the same content.
+        source.Host?.ReleaseContent();
+        source.Tabs.RemoveAt(oldIndex);
+        destination.Tabs.Insert(index, tab);
+        if (source != destination)
+        {
+            tab.HostChanged();
+            if (source.SelectedTabId == tab.Id) source.SelectedTabId = source.Tabs.ElementAtOrDefault(Math.Min(oldIndex, source.Tabs.Count - 1))?.Id;
+            // Keeping an empty tab makes even the original/last source window a normal host.
+            if (source.Tabs.Count == 0) AddTab(source);
+        }
+        SelectTab(destination, tab);
+        destination.Host?.Activate();
+    }
+
+    internal WorkspaceWindow DetachTab(ContentTab tab, PixelPoint? position = null)
+    {
+        var source = Owner(tab);
+        var bounds = source.Host?.CaptureGeometry() ?? source.Geometry;
+        var destination = NewWindow(bounds with { X = position?.X ?? bounds.X + 40, Y = position?.Y ?? bounds.Y + 40, Maximized = false }, false);
+        MoveTab(tab, destination, 0);
+        destination.Host?.Show();
+        destination.Host?.Activate();
+        return destination;
+    }
+
+    internal void CloseTab(ContentTab tab)
+    {
+        var window = Owner(tab);
+        window.Host?.ReleaseContent();
+        var index = window.Tabs.IndexOf(tab);
+        window.Tabs.Remove(tab);
+        tab.Close();
+        if (window.SelectedTabId == tab.Id) window.SelectedTabId = window.Tabs.ElementAtOrDefault(Math.Min(index, window.Tabs.Count - 1))?.Id;
+        if (window.Tabs.Count == 0) AddTab(window);
+        else SelectTab(window, window.SelectedTab ?? window.Tabs[0]);
+    }
+
+    internal ChartDocument AddChart(ContentTab? tab = null, IHistoricalBarReader? reader = null,
         ICsvFilePicker? picker = null, Guid? id = null)
     {
         VerifyOpen();
-        workspace ??= SelectedWorkspace ?? AddWorkspace(addChart: false);
-        var tab = workspace;
+        tab ??= SelectedTab ?? AddTab(ActiveWindow);
         var document = new ChartDocument(id ?? Guid.NewGuid(), reader, picker);
+        AddDocument(tab, document);
+        var target = tab.ActiveChartId is { } active && tab.Views.TryGetValue(active, out var activeView)
+            && activeView.Owner is IDocumentDock current ? current : tab.Factory.FirstGroup(tab.Root);
+        tab.Factory.AddDockable(target, tab.Views[document.Id]);
+        ActivateChart(document.Id);
+        Changed?.Invoke();
+        return document;
+    }
+
+    private void AddDocument(ContentTab tab, ChartDocument document)
+    {
         var label = $"Chart {tab.Charts.Count + 1}";
         var view = tab.Factory.View(document.Id, label, () => new ChartView(document, () => ChartMenu(tab, document)));
+        document.IsWorkspaceHosted = true;
+        document.WindowOwner = () => _windows.FirstOrDefault(w => w.Tabs.Contains(tab))?.Host;
         document.Activate = () => ActivateChart(document.Id);
         document.Changed += () => view.Title = document.Dataset is { } data ? $"{label} · {data.Instrument.Symbol}" : label;
         tab.Charts.Add(document.Id, document);
         tab.Views.Add(document.Id, view);
-        var target = tab.ActiveChartId is { } active && tab.Views.TryGetValue(active, out var activeView)
-            && activeView.Owner is IDocumentDock current ? current : tab.Factory.FirstGroup(tab.Root);
-        tab.Factory.AddDockable(target, view);
-        ActivateChart(document.Id);
-        Changed?.Invoke();
-        return document;
     }
 
     public bool ActivateChart(Guid id)
     {
         Dispatcher.UIThread.VerifyAccess();
         if (IsClosed || _restoringLayout) return false;
-        var tab = _tabs.FirstOrDefault(t => t.Charts.ContainsKey(id));
+        var tab = Tabs.FirstOrDefault(t => t.Charts.ContainsKey(id));
         if (tab is null || tab.Charts[id].IsClosed) return false;
         if (_selecting) return true;
         _selecting = true;
         try
         {
-            SelectedWorkspace = tab;
             tab.ActiveChartId = id;
-            var view = tab.Views[id];
-            if (ReferenceEquals(tab.Factory.FindRoot(view), tab.Root) && _workspaceViews.TryGetValue(tab.Id, out var workspaceView))
-                ShellFactory.Select(workspaceView);
-            tab.Factory.Select(view);
-            SetActive(tab.Charts[id]);
+            SelectTab(Owner(tab), tab);
+            tab.Factory.Select(tab.Views[id]);
             return true;
         }
         finally { _selecting = false; }
     }
 
-    internal void ActivateFromDock(WorkspaceTab tab, Guid id)
+    internal void ActivateFromDock(ContentTab tab, Guid id)
     {
-        if (_restoringLayout || IsClosed) return;
-        if (!tab.Charts.TryGetValue(id, out var document) || document.IsClosed) return;
-        SelectedWorkspace = tab;
+        if (_restoringLayout || IsClosed || _selecting || !tab.Charts.TryGetValue(id, out var document) || document.IsClosed) return;
         tab.ActiveChartId = id;
-        SetActive(document);
+        // Background presentation of a hidden tab must not steal the window's selection.
+        var window = Owner(tab);
+        if (window.SelectedTabId == tab.Id && ActiveWindow == window) SetActive(document);
     }
 
     private void SetActive(IChartDocument? chart)
@@ -122,159 +197,139 @@ internal sealed class WorkspaceController : IChartHost
         ActiveChartChanged?.Invoke();
     }
 
-    internal void Rename(WorkspaceTab tab, string name)
+    internal void Rename(ContentTab tab, string name)
     {
         var trimmed = name.Trim();
         if (trimmed.Length is 0 or > 200) return;
         tab.Name = trimmed;
-        _workspaceViews[tab.Id].Title = trimmed;
         Changed?.Invoke();
     }
 
-    internal void MoveWorkspace(WorkspaceTab tab, int delta)
-    {
-        var view = _workspaceViews[tab.Id];
-        if (view.Owner is not IDock { VisibleDockables: { } items } parent) return;
-        var index = items.IndexOf(view);
-        var target = Math.Clamp(index + delta, 0, items.Count - 1);
-        if (index == target) return;
-        items.RemoveAt(index);
-        items.Insert(target, view);
-        parent.ActiveDockable = view;
-    }
-
-    internal void DetachWorkspace(WorkspaceTab tab) => ShellFactory.FloatDockable(_workspaceViews[tab.Id]);
-    internal void RedockWorkspace(WorkspaceTab tab) => ShellFactory.Redock(Shell, _workspaceViews[tab.Id]);
-    internal void CloseWorkspace(WorkspaceTab tab) => ShellFactory.CloseDockable(_workspaceViews[tab.Id]);
-    internal void CloseChart(WorkspaceTab tab, Guid id) { if (tab.Views.TryGetValue(id, out var view)) tab.Factory.CloseDockable(view); }
-    internal void DetachChart(WorkspaceTab tab, Guid id) => tab.Factory.FloatDockable(tab.Views[id]);
-    internal void RedockChart(WorkspaceTab tab, Guid id) => tab.Factory.Redock(tab.Root, tab.Views[id]);
-    internal void SplitChart(WorkspaceTab tab, Guid id, bool below)
+    internal void CloseChart(ContentTab tab, Guid id) { if (tab.Views.TryGetValue(id, out var view)) tab.Factory.CloseDockable(view); }
+    internal void SplitChart(ContentTab tab, Guid id, bool below)
     {
         if (below) tab.Factory.NewVerticalDocumentDock(tab.Views[id]);
         else tab.Factory.NewHorizontalDocumentDock(tab.Views[id]);
         ActivateChart(id);
     }
 
-    internal void RemoveChart(WorkspaceTab tab, Guid id)
+    internal void RemoveChart(ContentTab tab, Guid id)
     {
         if (!tab.Charts.Remove(id, out var chart)) return;
         tab.Views.Remove(id);
         chart.Close();
         if (tab.ActiveChartId == id) tab.ActiveChartId = tab.Charts.Keys.Cast<Guid?>().FirstOrDefault();
-        if (ReferenceEquals(_active, chart)) SetActive(tab.Charts.Values.FirstOrDefault());
+        if (ReferenceEquals(_active, chart)) SetActive(tab.ActiveChartId is { } active ? tab.Charts[active] : null);
         Changed?.Invoke();
     }
 
-    private void RemoveWorkspace(Guid id)
-    {
-        if (_tabs.FirstOrDefault(t => t.Id == id) is not { } tab) return;
-        _tabs.Remove(tab);
-        _workspaceViews.Remove(id);
-        tab.Close();
-        if (SelectedWorkspace == tab) SelectedWorkspace = _tabs.FirstOrDefault();
-        if (_active is { IsClosed: true }) SetActive(SelectedWorkspace?.Charts.Values.FirstOrDefault());
-        Changed?.Invoke();
-    }
+    internal WorkspaceState Capture(WindowGeometry? geometry = null) => new(2, Name,
+        _windows.Select((w, i) => new WorkspaceWindowState(w.Id,
+            i == 0 && geometry is not null ? geometry : w.Host?.CaptureGeometry() ?? w.Geometry,
+            w.Tabs.Select(t => new ContentTabState(t.Id, t.Name, t.Factory.Capture(t.Root) with { FocusedView = t.ActiveChartId },
+                t.Charts.Values.Select(c => c.Capture()).ToList())).ToList(), w.SelectedTabId ?? w.Tabs[0].Id)).ToList(),
+        ActiveWindow.Id, _active?.Id);
 
-    internal WorkspaceState Capture(WindowGeometry? geometry) => new(1, ShellFactory.Capture(Shell),
-        // The workspace owns active-chart targeting across its main and floating roots.
-        // The main Dock root's focus alone can still point at a different embedded chart.
-        _tabs.Select(t => new WorkspaceTabState(t.Id, t.Name,
-            t.Factory.Capture(t.Root) with { FocusedView = t.ActiveChartId },
-            t.Charts.Values.Select(c => c.Capture()).ToList())).ToList(),
-        geometry, _active?.Id);
-
-    internal async Task RestoreAsync(WorkspaceState state)
+    internal async Task RestoreAsync(WorkspaceState state, WorkspaceWindow? receivingWindow = null)
     {
         VerifyOpen();
         WorkspaceStore.Validate(state);
+        var generation = ++_generation;
         var restore = new List<(ChartDocument Document, ChartState State)>();
         _restoringLayout = true;
         try
         {
-            foreach (var tab in _tabs.ToArray()) tab.Close();
-            ShellFactory.CloseFloating(Shell);
-            _tabs.Clear();
-            _workspaceViews.Clear();
+            var retained = receivingWindow ?? _windows[0];
+            foreach (var window in _windows.ToArray())
+            {
+                window.Host?.ReleaseContent();
+                foreach (var tab in window.Tabs) tab.Close();
+                window.Tabs.Clear();
+                if (window != retained) window.Host?.CloseForLayout();
+            }
+            _windows.Clear();
             SetActive(null);
+            Name = state.Name;
+            Notice = null;
             var skipped = 0;
-            foreach (var saved in state.Workspaces)
+            for (var index = 0; index < state.Windows.Count; index++)
             {
-                var tab = new WorkspaceTab(this, saved.Id, saved.Name);
-                _tabs.Add(tab);
-                foreach (var chart in saved.Charts)
+                var savedWindow = state.Windows[index];
+                var window = index == 0 ? retained : new WorkspaceWindow(savedWindow.Id);
+                window.Id = savedWindow.Id;
+                window.Geometry = savedWindow.Geometry;
+                _windows.Add(window);
+                foreach (var saved in savedWindow.Tabs)
                 {
-                    if (chart.ViewType != "candles") { skipped++; continue; }
-                    var document = new ChartDocument(chart.Id);
-                    var label = $"Chart {tab.Charts.Count + 1}";
-                    var view = tab.Factory.View(chart.Id, label, () => new ChartView(document, () => ChartMenu(tab, document)));
-                    document.Activate = () => ActivateChart(document.Id);
-                    document.Changed += () => view.Title = document.Dataset is { } data ? $"{label} · {data.Instrument.Symbol}" : label;
-                    tab.Charts.Add(chart.Id, document);
-                    tab.Views.Add(chart.Id, view);
-                    document.PrepareRestore(chart);
-                    restore.Add((document, chart));
+                    var tab = new ContentTab(this, saved.Id, saved.Name);
+                    window.Tabs.Add(tab);
+                    foreach (var chart in saved.Charts)
+                    {
+                        if (chart.ViewType != "candles") { skipped++; continue; }
+                        var document = new ChartDocument(chart.Id);
+                        AddDocument(tab, document);
+                        document.PrepareRestore(chart);
+                        restore.Add((document, chart));
+                    }
+                    tab.Root = tab.Factory.Restore(saved.Layout, tab.Views);
+                    tab.ActiveChartId = saved.Layout.FocusedView is { } focused && tab.Charts.ContainsKey(focused)
+                        ? focused : tab.Charts.Keys.Cast<Guid?>().FirstOrDefault();
                 }
-                tab.Root = tab.Factory.Restore(saved.Layout, tab.Views);
-                tab.ActiveChartId = saved.Layout.FocusedView is { } focused && tab.Charts.ContainsKey(focused)
-                    ? focused : tab.Charts.Keys.Cast<Guid?>().FirstOrDefault();
-                _workspaceViews.Add(tab.Id, ShellFactory.View(tab.Id, tab.Name, tab.CreateView));
+                window.SelectedTabId = savedWindow.SelectedTab;
+                if (index != 0 && retained.Host is { } source)
+                    _ = new MainWindow(this, window, source.Store) { ShowActivated = false };
+                window.Geometry.ApplyIfPresent(window.Host);
+                if (index != 0) window.Host?.Show();
             }
-            Shell = ShellFactory.Restore(state.Shell, _workspaceViews);
-            Surface.Layout = Shell;
-            SelectedWorkspace = _tabs.FirstOrDefault(t => t.Id == state.Shell.FocusedView) ?? _tabs.FirstOrDefault();
-            if (_tabs.Count == 0) AddWorkspace();
-            if (_tabs.FirstOrDefault(t => state.ActiveChart is { } id && t.Charts.ContainsKey(id)) is { } activeTab)
-            {
-                SelectedWorkspace = activeTab;
-                activeTab.ActiveChartId = state.ActiveChart;
-            }
-            SetActive(SelectedWorkspace?.ActiveChartId is { } active
-                ? SelectedWorkspace.Charts.GetValueOrDefault(active) : SelectedWorkspace?.Charts.Values.FirstOrDefault());
+            ActiveWindow = _windows.FirstOrDefault(w => w.Id == state.ActiveWindow) ?? _windows[0];
+            if (state.ActiveChart is { } chartId && ActiveWindow.SelectedTab is { } activeTab && activeTab.Charts.TryGetValue(chartId, out var active))
+                SetActive(active);
+            else SetActive(ActiveWindow.SelectedTab?.ActiveChartId is { } id ? ActiveWindow.SelectedTab.Charts.GetValueOrDefault(id) : null);
             if (skipped > 0) Notice = $"Skipped {skipped} unsupported saved view(s). Supported charts remain available; the previous layout is backed up on save.";
             Changed?.Invoke();
-
-            // Dock's nested content and window callbacks run on dispatcher turns.
-            // Ignore their incidental activation until the saved selection is presented.
-            // This is a queue boundary, not a timing delay or a wait for CSV imports.
             await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.ContextIdle);
         }
-        finally { _restoringLayout = false; }
-        if (IsClosed) return;
-        if (_active is ChartDocument activeChart)
-        {
-            ActivateChart(activeChart.Id);
-            activeChart.WindowOwner?.Invoke()?.Activate();
-        }
-        foreach (var (document, saved) in restore)
-        {
-            if (IsClosed) break;
-            if (!document.IsClosed) await document.RestoreAsync(saved);
-        }
+        finally { if (generation == _generation) _restoringLayout = false; }
+        if (IsClosed || generation != _generation) return;
+        ActiveWindow.Host?.Activate();
+        // Parallel verification avoids serializing unrelated saved inputs. Each document owns cancellation.
+        await Task.WhenAll(restore.Where(x => !x.Document.IsClosed).Select(x => x.Document.RestoreAsync(x.State)));
+    }
+
+    internal WorkspaceWindow Owner(ContentTab tab) => _windows.Single(w => w.Tabs.Contains(tab));
+
+    internal void CloseWindow(WorkspaceWindow window)
+    {
+        if (!_windows.Remove(window)) return;
+        window.Host?.ReleaseContent();
+        foreach (var tab in window.Tabs) tab.Close();
+        window.Tabs.Clear();
+        window.Host = null;
+        if (_windows.Count == 0) { IsClosed = true; _generation++; SetActive(null); }
+        else { ActiveWindow = _windows.Contains(ActiveWindow) ? ActiveWindow : _windows[0]; ActivateWindow(ActiveWindow); Changed?.Invoke(); }
     }
 
     internal void Close()
     {
         if (IsClosed) return;
         IsClosed = true;
-        foreach (var tab in _tabs.ToArray()) tab.Close();
-        ShellFactory.CloseFloating(Shell);
+        _generation++;
+        foreach (var window in _windows.ToArray())
+        {
+            window.Host?.ReleaseContent();
+            foreach (var tab in window.Tabs) tab.Close();
+            window.Tabs.Clear();
+            window.Host?.CloseForLayout();
+        }
+        _windows.Clear();
         SetActive(null);
-        ShellFactory.ClosedView = null;
-        ShellFactory.ActivatedView = null;
-        Surface.Layout = null;
-        _tabs.Clear();
-        _workspaceViews.Clear();
     }
 
-    private Menu ChartMenu(WorkspaceTab tab, ChartDocument document)
+    private Menu ChartMenu(ContentTab tab, ChartDocument document)
     {
         var menu = new MenuItem { Header = "Chart ▾" };
         menu.Items.Add(Item("Split right", () => SplitChart(tab, document.Id, false)));
         menu.Items.Add(Item("Split below", () => SplitChart(tab, document.Id, true)));
-        menu.Items.Add(Item("Detach chart", () => DetachChart(tab, document.Id)));
-        menu.Items.Add(Item("Dock back", () => RedockChart(tab, document.Id)));
         menu.Items.Add(Item("Close chart", () => CloseChart(tab, document.Id)));
         return new Menu { Items = { menu } };
     }
@@ -286,16 +341,28 @@ internal sealed class WorkspaceController : IChartHost
         return item;
     }
 
+    private void VerifyWindow(WorkspaceWindow window) { VerifyOpen(); if (!_windows.Contains(window)) throw new InvalidOperationException("Unknown workspace window."); }
     private void VerifyOpen() { Dispatcher.UIThread.VerifyAccess(); ObjectDisposedException.ThrowIf(IsClosed, this); }
 }
 
-internal sealed class WorkspaceTab
+internal sealed class WorkspaceWindow(Guid id)
 {
-    private readonly WorkspaceController _owner;
-    internal WorkspaceTab(WorkspaceController owner, Guid id, string name)
+    internal Guid Id { get; set; } = id;
+    internal List<ContentTab> Tabs { get; } = [];
+    internal Guid? SelectedTabId { get; set; }
+    internal ContentTab? SelectedTab => Tabs.FirstOrDefault(t => t.Id == SelectedTabId);
+    internal MainWindow? Host { get; set; }
+    internal long ActivationOrder { get; set; }
+    internal WindowGeometry Geometry { get; set; } = new(100, 100, 1200, 800, false);
+}
+
+internal sealed class ContentTab
+{
+    private Control? _surface;
+    internal ContentTab(WorkspaceController owner, Guid id, string name)
     {
-        _owner = owner; Id = id; Name = name;
-        Factory = new("charts-" + id, false);
+        Id = id; Name = name;
+        Factory = new("charts-" + id);
         Factory.ClosedView = viewId => owner.RemoveChart(this, viewId);
         Factory.ActivatedView = viewId => owner.ActivateFromDock(this, viewId);
         Root = Factory.NewRoot();
@@ -307,36 +374,21 @@ internal sealed class WorkspaceTab
     internal Dictionary<Guid, ChartDocument> Charts { get; } = [];
     internal Dictionary<Guid, Document> Views { get; } = [];
     internal Guid? ActiveChartId { get; set; }
-
-    internal Control CreateView()
+    internal Control Surface => _surface ??= Factory.Surface(Root);
+    internal void HostChanged()
     {
-        var name = new TextBox { Name = "WorkspaceName", Text = Name, Width = 160, MaxLength = 200 };
-        name.LostFocus += (_, _) => _owner.Rename(this, name.Text ?? Name);
-        name.KeyDown += (_, e) => { if (e.Key == Key.Enter) _owner.Rename(this, name.Text ?? Name); };
-        var commands = new MenuItem { Header = "Workspace ▾" };
-        commands.Items.Add(WorkspaceController.Item("Move tab left", () => _owner.MoveWorkspace(this, -1)));
-        commands.Items.Add(WorkspaceController.Item("Move tab right", () => _owner.MoveWorkspace(this, 1)));
-        commands.Items.Add(WorkspaceController.Item("Detach workspace", () => _owner.DetachWorkspace(this)));
-        commands.Items.Add(WorkspaceController.Item("Dock workspace back", () => _owner.RedockWorkspace(this)));
-        commands.Items.Add(WorkspaceController.Item("Close workspace and its charts", () => _owner.CloseWorkspace(this)));
-        var add = new Button { Name = "AddChart", Content = "+ Chart" };
-        add.Click += (_, _) => _owner.AddChart(this);
-        var header = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 6, Margin = new(6, 3),
-            Children = { name, add, new Menu { Items = { commands } } } };
-        var panel = new DockPanel();
-        DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
-        panel.Children.Add(header);
-        panel.Children.Add(Factory.Surface(Root));
-        return panel;
+        foreach (var chart in Charts.Values) chart.HostChanged();
+        if (_surface is Dock.Avalonia.Controls.DockControl dock) dock.Layout = null;
+        _surface = null;
     }
-
     internal void Close()
     {
         foreach (var chart in Charts.Values.ToArray()) chart.Close();
         Factory.ClosedView = null;
         Factory.ActivatedView = null;
         Factory.CloseFloating(Root);
-        Charts.Clear();
-        Views.Clear();
+        Charts.Clear(); Views.Clear();
+        if (_surface is Dock.Avalonia.Controls.DockControl dock) dock.Layout = null;
+        _surface = null;
     }
 }

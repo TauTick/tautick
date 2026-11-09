@@ -70,3 +70,17 @@ The local guides' relative links and root discovery pointers were checked (64 lo
 Cross-platform native acceptance remains unverified. No pixel-identical Windows/Linux rendering or broader performance guarantee is claimed.
 
 The pale surface, blue accent, Inter text, spacing and small corners are provisional source-backed choices. The library guide owns [component/resource conventions](../../src/TauTick.UI/README.md#resources-fonts-and-component-authoring); the gallery has no runtime visual editor or automatic write-back. No final application-wide redesign is established by this task.
+
+
+## TAU-11 shared content strip — 2026-11-09
+
+The toolbar scene now uses production `ContentTabBar`/`ContentTabHeader` with
+synthetic chart and empty tabs. On Ubuntu 24.04 x64, X11/Skia software rendering,
+private Xvfb 2400×1800, Openbox, separate D-Bus/profile and scale 1: native selection,
++, drag reorder and keyboard activation passed with inspected captures. An AXAML
+minimum-height edit (38 → 44 → 38) reloaded in the same PID; + and Space activation
+still worked after reload. Normal gallery close returned process code 0. Source
+was restored, and captures/drivers remain outside Git at
+`/tmp/tautick-tau11-gallery/`. Windows, physical DPI/monitors and Wayland were not
+verified. The [workspace validation](../../docs/workspace-validation.md) records
+cross-window application checks separately.

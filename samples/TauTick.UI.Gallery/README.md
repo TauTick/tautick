@@ -73,6 +73,11 @@ Replace `FitData` with `DisplayName` for settings or `StateAction` for controls.
 
 Important IDs: `SceneSelector`, `ResetScene`, `CompactPreview`, `WidePreview`, `GalleryStatus`, `CurrentScene`; toolbar `OpenCsv`, `FitData`, `OpenIndicators`, `BarChart`, `ContentTabs`; settings `DisplayName`, `LineWidth`, `PriceDisplay`, `SettingsError`, `ApplySettings`, `CancelSettings`; controls `StateAction`, `IconAction`, `StateToggle`, `StateCheckbox`, `StateText`, `StateInvalid`, `StateNumber`, `StateSelector`, `StateMenu`; result `SceneResult`. Scope repeated template peers to the intended scene/window/process. Popup peers can be separate native windows belonging to that PID.
 
+The toolbar scene uses the production `ContentTabBar`: select/close a tab, add an
+empty tab with +, reorder with a real drag and cancel a drag with Escape. Reset
+reconstructs its deterministic synthetic tabs. Cross-window transfers are exercised
+in the desktop application.
+
 Exercise real Tab/Shift+Tab/Space/Return, hover, held press, typing, selector/menu navigation, settings Apply/Cancel and chart wheel/Fit. The red input is a labeled demonstration state; Settings supplies actual draft validation. Test compact/wide sizes and the long selector/tab labels. Xvfb checks do not prove physical DPI, GPU performance, Windows or Wayland behavior.
 
 On Windows, inspect the gallery PID through UI Automation (Accessibility Insights or PowerShell `UIAutomationClient`) and query `AutomationId` before supplying native input. Repeat launch, selection/reset, shared style edit, malformed-edit recovery and close. These Windows operations remain unverified in this implementation environment; do not infer them from a Linux build.

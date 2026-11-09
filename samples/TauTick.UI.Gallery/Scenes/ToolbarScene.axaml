@@ -5,10 +5,11 @@
     <TextBlock Text="Toolbar and content tabs" Classes="tauHeading" />
     <TextBlock Text="SYNTHETIC · invented minute bars, including a gap and known zero volume" TextWrapping="Wrap" />
     <ui:ChartToolbar x:Name="Toolbar" ShowContractYear="False" OpenCommand="{Binding Open}" IndicatorsCommand="{Binding Indicators}" />
-    <TabControl AutomationProperties.AutomationId="ContentTabs">
-      <TabItem Header="Synthetic chart"><chart:BarChart x:Name="PreviewChart" Height="300" Focusable="True" AutomationProperties.AutomationId="BarChart" /></TabItem>
-      <TabItem Header="Long content tab label"><TextBlock Margin="16" Text="Ordinary content tabs; no new product feature." TextWrapping="Wrap" /></TabItem>
-    </TabControl>
+    <ui:ContentTabBar x:Name="PreviewTabs" AutomationProperties.AutomationId="ContentTabs" />
+    <Grid>
+      <chart:BarChart x:Name="PreviewChart" Height="300" Focusable="True" AutomationProperties.AutomationId="BarChart" />
+      <TextBlock x:Name="EmptyTab" Margin="16" Text="Empty synthetic content tab" IsVisible="False" />
+    </Grid>
     <TextBlock Text="{Binding Result}" TextWrapping="Wrap" AutomationProperties.AutomationId="SceneResult" />
   </StackPanel>
 </UserControl>

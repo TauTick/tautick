@@ -29,4 +29,6 @@ internal sealed record WindowGeometry(double X, double Y, double Width, double H
         window.Height = geometry.Height;
         window.WindowState = geometry.Maximized ? WindowState.Maximized : WindowState.Normal;
     }
+
+    internal void ApplyIfPresent(Window? window) { if (window is not null) Apply(window); }
 }

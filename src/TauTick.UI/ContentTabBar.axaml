@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TauTick.UI.ContentTabBar" Classes="tau" Focusable="True">
+  <Border Background="{DynamicResource TauSurface}" BorderBrush="{DynamicResource TauBorder}" BorderThickness="0,0,0,1">
+    <Grid x:Name="Strip" MinHeight="38" ClipToBounds="True">
+      <ScrollViewer x:Name="TabScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Horizontal">
+          <StackPanel x:Name="Headers" Orientation="Horizontal" />
+          <Button x:Name="AddContentTab" Content="+" Classes="tau" MinWidth="36" Margin="3,2"
+                  AutomationProperties.AutomationId="AddContentTab" AutomationProperties.Name="Add empty content tab" ToolTip.Tip="Add empty content tab" />
+        </StackPanel>
+      </ScrollViewer>
+      <Border x:Name="InsertionMarker" Width="3" Background="{DynamicResource TauAccent}" HorizontalAlignment="Left"
+              IsHitTestVisible="False" IsVisible="False" />
+    </Grid>
+  </Border>
+</UserControl>

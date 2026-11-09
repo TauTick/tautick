@@ -16,7 +16,10 @@ public sealed class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnLastWindowClose;
             desktop.MainWindow = new MainWindow(store: Workspace.WorkspaceStore.Default());
+        }
         base.OnFrameworkInitializationCompleted();
     }
 }
