@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/TauTick.UI/TauTick.UI.csproj" />
     <Project Path="src/TauTick.Studies/TauTick.Studies.csproj" />
     <Project Path="src/TauTick.MarketData/TauTick.MarketData.csproj" />
     <Project Path="src/TauTick.Adapters.Databento/TauTick.Adapters.Databento.csproj" />
@@ -7,10 +8,12 @@
     <Project Path="src/TauTick.Desktop/TauTick.Desktop.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/TauTick.UI.Gallery/TauTick.UI.Gallery.csproj" />
     <Project Path="samples/TauTick.Databento.Verify/TauTick.Databento.Verify.csproj" />
     <Project Path="samples/TauTick.SyntheticData/TauTick.SyntheticData.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/TauTick.UI.Tests/TauTick.UI.Tests.csproj" />
     <Project Path="tests/TauTick.Desktop.Tests/TauTick.Desktop.Tests.csproj" />
     <Project Path="tests/TauTick.Adapters.Databento.Tests/TauTick.Adapters.Databento.Tests.csproj" />
     <Project Path="tests/TauTick.MarketData.Tests/TauTick.MarketData.Tests.csproj" />

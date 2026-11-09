@@ -5,15 +5,14 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using TauTick.Charting;
+using TauTick.UI;
 
 namespace TauTick.Desktop.Workspace;
 
 internal sealed class ChartView : UserControl
 {
     private readonly ChartDocument _document;
-    private readonly TextBox _year = new() { Name = "ContractYear", Width = 76, MaxLength = 4, PlaceholderText = "2025" };
-    private readonly Button _open = new() { Name = "OpenCsv", Content = "Open CSV…" };
-    private readonly Button _fit = new() { Name = "FitData", Content = "Fit" };
+    private readonly ChartToolbar _toolbar = new();
     private readonly TextBlock _summary = new() { Name = "DatasetSummary", FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _status = new() { Name = "LoadStatus", FontSize = 11 };
     private readonly TextBlock _error = new() { Name = "LoadError", Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap };
@@ -27,37 +26,30 @@ internal sealed class ChartView : UserControl
         _document = document;
         Chart = new BarChart { Name = "BarChart", Focusable = true };
         document.SurfaceCreated(Chart);
-        var actions = new WrapPanel { Orientation = Orientation.Horizontal };
-        actions.Children.Add(new TextBlock { Text = "Year", VerticalAlignment = VerticalAlignment.Center, IsVisible = document.IsProduction, Margin = new(0, 0, 5, 0) });
-        _year.IsVisible = document.IsProduction;
-        actions.Children.Add(_year);
-        actions.Children.Add(_open);
-        actions.Children.Add(_fit);
-        var indicators = new Button { Name = "OpenIndicators", Content = "Indicators…" };
-        indicators.Click += (_, _) => document.OpenIndicators();
-        actions.Children.Add(indicators);
+        _toolbar.ShowContractYear = document.IsProduction;
+        _toolbar.IndicatorsRequested += (_, _) => document.OpenIndicators();
         var indicatorMenu = new MenuItem { Header = "Indicators… (Ctrl+I)" };
         indicatorMenu.Click += (_, _) => document.OpenIndicators();
         Chart.ContextMenu = new ContextMenu { ItemsSource = new[] { indicatorMenu } };
-        if (commands?.Invoke() is { } menu) actions.Children.Add(menu);
-        var header = new StackPanel { Spacing = 3, Margin = new(6), Children = { actions, _summary, _status, _error, _notice, _legend } };
+        if (commands?.Invoke() is { } menu) _toolbar.AdditionalContent = menu;
+        var header = new StackPanel { Spacing = 3, Margin = new(6), Children = { _toolbar, _summary, _status, _error, _notice, _legend } };
         var panel = new DockPanel();
         DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
         panel.Children.Add(header);
         panel.Children.Add(Chart);
         Content = panel;
-        _open.Click += async (_, _) => { document.Activate?.Invoke(); await document.Session.OpenAsync(); };
-        _fit.Click += (_, _) => { document.Activate?.Invoke(); document.FitToData(); };
-        _year.PropertyChanged += (_, e) =>
+        _toolbar.OpenRequested += async (_, _) => { document.Activate?.Invoke(); await document.Session.OpenAsync(); };
+        _toolbar.FitRequested += (_, _) => { document.Activate?.Invoke(); document.FitToData(); };
+        _toolbar.PropertyChanged += (_, e) =>
         {
-            if (e.Property == TextBox.TextProperty && !_refreshing) document.ContractYearText = _year.Text ?? "";
+            if (e.Property == ChartToolbar.ContractYearTextProperty && !_refreshing) document.ContractYearText = _toolbar.ContractYearText ?? "";
         };
         AddHandler(PointerPressedEvent, (_, _) => document.Activate?.Invoke(), RoutingStrategies.Tunnel, true);
         AddHandler(GotFocusEvent, (_, _) => document.Activate?.Invoke(), RoutingStrategies.Bubble, true);
         KeyDown += async (_, e) =>
         {
             if (e.KeyModifiers != KeyModifiers.Control) return;
-            if (e.Key == Key.O && _open.IsEnabled)
+            if (e.Key == Key.O && _toolbar.CanOpen)
             {
                 e.Handled = true;
                 document.Activate?.Invoke();
@@ -151,10 +143,10 @@ internal sealed class ChartView : UserControl
                 else Chart.ClearDataset();
             }
             if (_document.VisibleTimeRange is { } range && !Equals(Chart.VisibleTimeRange, range)) Chart.TryRestoreTimeRange(range);
-            _year.Text = _document.ContractYearText;
-            _year.IsEnabled = !session.IsBusy && !session.IsClosed && !_document.IsRestoring;
-            _open.IsEnabled = !session.IsBusy && !session.IsClosed && !_document.IsRestoring && (!_document.IsProduction || _document.ContractYear is not null);
-            _fit.IsEnabled = session.Dataset is not null && !session.IsClosed;
+            _toolbar.ContractYearText = _document.ContractYearText;
+            _toolbar.CanEditYear = !session.IsBusy && !session.IsClosed && !_document.IsRestoring;
+            _toolbar.CanOpen = !session.IsBusy && !session.IsClosed && !_document.IsRestoring && (!_document.IsProduction || _document.ContractYear is not null);
+            _toolbar.CanFit = session.Dataset is not null && !session.IsClosed;
             _summary.Text = session.Dataset is { } accepted ? DatasetSummary.Format(accepted) : "No dataset loaded.";
             ToolTip.SetTip(_summary, _summary.Text);
             _status.Text = _document.IsRestoring && !session.IsBusy ? "Waiting to verify saved input…" : session.Status;

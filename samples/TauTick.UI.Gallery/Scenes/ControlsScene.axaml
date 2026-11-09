@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:gallery="using:TauTick.UI.Gallery" x:DataType="gallery:GalleryState"
+             x:Class="TauTick.UI.Gallery.Scenes.ControlsScene" Classes="tau">
+  <StackPanel Margin="16" Spacing="{DynamicResource TauGap}">
+    <TextBlock Text="Control states" Classes="tauHeading" />
+    <TextBlock Text="Use pointer hover/press and Tab/Space to inspect real interaction states." TextWrapping="Wrap" />
+    <WrapPanel>
+      <Button Classes="tau" Margin="0,0,8,8" Content="Action" AutomationProperties.AutomationId="StateAction" Command="{Binding Open}" ToolTip.Tip="Native tooltip for the shared button" />
+      <Button Classes="tau" Margin="0,0,8,8" Content="+" AutomationProperties.Name="Add sample" AutomationProperties.AutomationId="IconAction" ToolTip.Tip="Add sample" />
+      <Button Classes="tau" Margin="0,0,8,8" Content="Disabled" IsEnabled="False" />
+      <ToggleButton Classes="tau" Margin="0,0,8,8" Content="Selected toggle" IsChecked="True" AutomationProperties.AutomationId="StateToggle" />
+    </WrapPanel>
+    <CheckBox Content="Show reference labels" IsChecked="True" AutomationProperties.AutomationId="StateCheckbox" />
+    <TextBlock Text="Editable and validation examples" />
+    <TextBox Text="Editable sample" AutomationProperties.AutomationId="StateText" AutomationProperties.Name="Sample text" />
+    <TextBox Classes="tauInvalid" Text="Invalid demonstration" AutomationProperties.AutomationId="StateInvalid" />
+    <TextBlock Text="Demonstration error: a name is required. Try actual validation in Settings." Classes="tauError" TextWrapping="Wrap" />
+    <NumericUpDown Value="2" Minimum="1" Maximum="8" AutomationProperties.AutomationId="StateNumber" />
+    <ComboBox SelectedIndex="0" HorizontalAlignment="Stretch" AutomationProperties.AutomationId="StateSelector">
+      <ComboBoxItem Content="Default selection" /><ComboBoxItem Content="A longer choice for compact layout inspection" />
+    </ComboBox>
+    <Button Content="Open native menu" Classes="tau" AutomationProperties.AutomationId="StateMenu">
+      <Button.Flyout><MenuFlyout><MenuItem Header="Sample menu action" Command="{Binding Open}" /><MenuItem Header="Disabled menu action" IsEnabled="False" /></MenuFlyout></Button.Flyout>
+    </Button>
+    <TextBlock Text="{Binding Result}" TextWrapping="Wrap" AutomationProperties.AutomationId="SceneResult" />
+  </StackPanel>
+</UserControl>

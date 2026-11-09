@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../TauTick.UI/TauTick.UI.csproj" />
     <ProjectReference Include="../TauTick.MarketData/TauTick.MarketData.csproj" />
     <ProjectReference Include="../TauTick.Adapters.Databento/TauTick.Adapters.Databento.csproj" />
     <ProjectReference Include="../TauTick.Charting/TauTick.Charting.csproj" />

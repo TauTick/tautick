@@ -1,0 +1,65 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" x:Class="TauTick.UI.Theme">
+  <Styles.Resources>
+    <!-- Provisional shared values. Runtime experiments are not source decisions. -->
+    <SolidColorBrush x:Key="TauAccent">#397DD4</SolidColorBrush>
+    <SolidColorBrush x:Key="TauInk">#1C2B40</SolidColorBrush>
+    <SolidColorBrush x:Key="TauSurface">#F5F7FA</SolidColorBrush>
+    <SolidColorBrush x:Key="TauBorder">#C7D1DE</SolidColorBrush>
+    <SolidColorBrush x:Key="TauHover">#E5EFFD</SolidColorBrush>
+    <SolidColorBrush x:Key="TauPressed">#CBDEF8</SolidColorBrush>
+    <SolidColorBrush x:Key="TauError">#B42336</SolidColorBrush>
+    <FontFamily x:Key="TauFont">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+    <x:Double x:Key="TauBodySize">13</x:Double>
+    <x:Double x:Key="TauHeadingSize">20</x:Double>
+    <x:Double x:Key="TauGap">12</x:Double>
+    <x:Double x:Key="TauControlHeight">32</x:Double>
+    <Thickness x:Key="TauControlPadding">12,6</Thickness>
+    <Thickness x:Key="TauPanelPadding">16</Thickness>
+    <Thickness x:Key="TauBorderWidth">1</Thickness>
+    <CornerRadius x:Key="TauCorner">4</CornerRadius>
+    <ControlTheme x:Key="TauButton" TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource TauInk}" />
+      <Setter Property="Background" Value="{DynamicResource TauSurface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource TauBorder}" />
+      <Setter Property="BorderThickness" Value="{DynamicResource TauBorderWidth}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource TauCorner}" />
+      <Setter Property="Padding" Value="{DynamicResource TauControlPadding}" />
+      <Setter Property="MinHeight" Value="{DynamicResource TauControlHeight}" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Name="Chrome" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                              ContentTemplate="{TemplateBinding ContentTemplate}" RecognizesAccessKey="True"
+                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource TauHover}" /></Style>
+      <Style Selector="^:pressed"><Setter Property="Background" Value="{DynamicResource TauPressed}" /></Style>
+      <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#Chrome">
+        <Setter Property="BorderBrush" Value="{DynamicResource TauAccent}" />
+        <Setter Property="BoxShadow" Value="0 0 0 2 #66397DD4" />
+      </Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="Button.tau"><Setter Property="Theme" Value="{DynamicResource TauButton}" /></Style>
+  <Style Selector="UserControl.tau">
+    <Setter Property="FontFamily" Value="{DynamicResource TauFont}" />
+    <Setter Property="FontSize" Value="{DynamicResource TauBodySize}" />
+    <Setter Property="Foreground" Value="{DynamicResource TauInk}" />
+  </Style>
+  <Style Selector="TextBlock.tauHeading"><Setter Property="FontSize" Value="{DynamicResource TauHeadingSize}" /></Style>
+  <Style Selector="TextBlock.tauError"><Setter Property="Foreground" Value="{DynamicResource TauError}" /></Style>
+  <Style Selector="TextBox.tauInvalid"><Setter Property="BorderBrush" Value="{DynamicResource TauError}" /></Style>
+  <Style Selector="ToggleButton.tau:checked">
+    <Setter Property="Background" Value="{DynamicResource TauPressed}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource TauAccent}" />
+  </Style>
+</Styles>

@@ -1,0 +1,9 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:gallery="using:TauTick.UI.Gallery" x:DataType="gallery:GalleryState"
+             xmlns:ui="using:TauTick.UI" x:Class="TauTick.UI.Gallery.Scenes.SettingsScene" Classes="tau">
+  <StackPanel>
+    <ui:SettingsPanel DisplayNameText="{Binding DisplayName, Mode=TwoWay}" StrokeWidth="{Binding StrokeWidth, Mode=TwoWay}"
+                      PriceDisplayIndex="{Binding PriceDisplayIndex, Mode=TwoWay}" ErrorText="{Binding Error}"
+                      CanApply="{Binding CanApply}" ApplyCommand="{Binding Apply}" CancelCommand="{Binding Cancel}" />
+    <TextBlock Margin="16" Text="{Binding Result}" TextWrapping="Wrap" AutomationProperties.AutomationId="SceneResult" />
+  </StackPanel>
+</UserControl>

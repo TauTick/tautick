@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TauTick.UI.ChartToolbar" x:Name="Root" Classes="tau">
+  <WrapPanel Orientation="Horizontal">
+    <TextBlock Text="Year" VerticalAlignment="Center" Margin="0,0,6,0"
+               IsVisible="{Binding ShowContractYear, ElementName=Root}" />
+    <TextBox Name="ContractYear" AutomationProperties.AutomationId="ContractYear"
+             IsEnabled="{Binding CanEditYear, ElementName=Root}" Width="76" MaxLength="4" PlaceholderText="2025"
+             IsVisible="{Binding ShowContractYear, ElementName=Root}"
+             Text="{Binding ContractYearText, ElementName=Root, Mode=TwoWay}" />
+    <Button x:Name="OpenCsv" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="OpenCsv" Content="Open CSV…"
+            Command="{Binding OpenCommand, ElementName=Root}" IsEnabled="{Binding CanOpen, ElementName=Root}" />
+    <Button x:Name="FitData" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="FitData" Content="Fit" ToolTip.Tip="Fit the full accepted range"
+            Command="{Binding FitCommand, ElementName=Root}" IsEnabled="{Binding CanFit, ElementName=Root}" />
+    <Button x:Name="OpenIndicators" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="OpenIndicators" Content="Indicators…"
+            Command="{Binding IndicatorsCommand, ElementName=Root}" />
+    <ContentControl Content="{Binding AdditionalContent, ElementName=Root}" />
+  </WrapPanel>
+</UserControl>

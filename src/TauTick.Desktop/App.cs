@@ -10,6 +10,7 @@ public sealed class App : Application
     {
         Styles.Add(new FluentTheme());
         Styles.Add(new Dock.Avalonia.Themes.Fluent.DockFluentTheme());
+        Styles.Add(new TauTick.UI.Theme());
     }
 
     public override void OnFrameworkInitializationCompleted()

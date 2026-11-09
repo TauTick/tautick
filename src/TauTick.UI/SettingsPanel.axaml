@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TauTick.UI.SettingsPanel" x:Name="Root" Classes="tau">
+  <StackPanel Spacing="{DynamicResource TauGap}" Margin="{DynamicResource TauPanelPadding}">
+    <TextBlock Text="Presentation settings" Classes="tauHeading" />
+    <TextBlock Text="Display name" />
+    <TextBox x:Name="DisplayName" AutomationProperties.AutomationId="DisplayName" AutomationProperties.Name="Display name"
+             Text="{Binding DisplayNameText, ElementName=Root, Mode=TwoWay}" />
+    <TextBlock Text="Line width" />
+    <NumericUpDown x:Name="LineWidth" AutomationProperties.AutomationId="LineWidth" AutomationProperties.Name="Line width"
+                   Value="{Binding StrokeWidth, ElementName=Root, Mode=TwoWay}" Minimum="1" Maximum="8" />
+    <TextBlock Text="Price display" />
+    <ComboBox x:Name="PriceDisplay" AutomationProperties.AutomationId="PriceDisplay" AutomationProperties.Name="Price display"
+              HorizontalAlignment="Stretch" SelectedIndex="{Binding PriceDisplayIndex, ElementName=Root, Mode=TwoWay}">
+      <ComboBoxItem Content="Decimal prices" />
+      <ComboBoxItem Content="Long display label for compact preview checks" />
+    </ComboBox>
+    <TextBlock Text="{Binding ErrorText, ElementName=Root}" Classes="tauError" TextWrapping="Wrap"
+               AutomationProperties.AutomationId="SettingsError" />
+    <WrapPanel>
+      <Button Content="Apply" Classes="tau" Margin="0,0,8,0" AutomationProperties.AutomationId="ApplySettings"
+              Command="{Binding ApplyCommand, ElementName=Root}" IsEnabled="{Binding CanApply, ElementName=Root}" />
+      <Button Content="Cancel" Classes="tau" AutomationProperties.AutomationId="CancelSettings"
+              Command="{Binding CancelCommand, ElementName=Root}" />
+    </WrapPanel>
+  </StackPanel>
+</UserControl>

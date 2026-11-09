@@ -19,6 +19,8 @@ Resolve the team by its key and the project by its linked URL when using Linear 
 
 ## Documentation
 
+- For UI design/development, use shared controls and the native gallery. Before UI work, read the relevant [library instructions](src/TauTick.UI/AGENTS.md) and [guide](src/TauTick.UI/README.md), and [gallery instructions](samples/TauTick.UI.Gallery/AGENTS.md) and [runbook](samples/TauTick.UI.Gallery/README.md).
+
 - Read [README.md](README.md) for the current milestone and [GLOSSARY.md](GLOSSARY.md) for shared terminology.
 - Use the [chart viewer plan](docs/charting-mvp.md) for MVP scope, proposed component boundaries and performance checks. Distinguish agreed direction from proposals still awaiting validation.
 - Consult the [recorded-session brief](docs/recorded-session-research.md) when working on the later replay and experiment workflow.

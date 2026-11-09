@@ -102,6 +102,8 @@ See the [developer and contract guide](docs/development.md) for setup and compon
 
 ## Testing
 
+TauTick has a native UI design gallery and [shared Avalonia controls](src/TauTick.UI/README.md), used by the desktop application. The [gallery guide](samples/TauTick.UI.Gallery/README.md) explains the persistent native edit-and-preview workflow and its validation limits.
+
 After a successful launcher build, run tests separately from the repository root:
 
 ```sh

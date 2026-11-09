@@ -10,6 +10,8 @@ Windows interactive acceptance. Pan/zoom and crosshairs remain separate work.
 
 ## Build, test and launch
 
+For shared UI design and native warm reload, use the [library guide](../src/TauTick.UI/README.md) and [gallery runbook](../samples/TauTick.UI.Gallery/README.md).
+
 Install [a stable .NET 10.0 SDK, version 10.0.114 or newer](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 for your platform. `global.json` sets the minimum version and uses `latestFeature`
 roll-forward to select the newest installed stable 10.0 feature band and patch.
