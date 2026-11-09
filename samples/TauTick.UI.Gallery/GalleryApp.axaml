@@ -1,0 +1,11 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:TauTick.UI"
+             xmlns:dock="using:Dock.Avalonia.Themes.Fluent"
+             x:Class="TauTick.UI.Gallery.GalleryApp">
+  <Application.Styles>
+    <FluentTheme />
+    <dock:DockFluentTheme />
+    <ui:Theme />
+  </Application.Styles>
+</Application>

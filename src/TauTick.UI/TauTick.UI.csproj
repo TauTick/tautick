@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <HotAvaloniaIncludeXamlLoader>false</HotAvaloniaIncludeXamlLoader>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Markup.Xaml.Loader" PrivateAssets="all" />
+    <PackageReference Include="HotAvalonia" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

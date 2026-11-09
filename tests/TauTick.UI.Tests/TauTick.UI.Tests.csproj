@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/TauTick.UI/TauTick.UI.csproj" />
+    <ProjectReference Include="../../samples/TauTick.UI.Gallery/TauTick.UI.Gallery.csproj" />
+    <PackageReference Include="Avalonia.Headless.XUnit" />
+  </ItemGroup>
+</Project>

@@ -302,6 +302,12 @@
           "TauTick.MarketData": "[1.0.0, )"
         }
       },
+      "tautick.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.5, )"
+        }
+      },
       "Avalonia": {
         "type": "CentralTransitive",
         "requested": "[12.1.5, )",

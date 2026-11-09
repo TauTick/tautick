@@ -410,7 +410,8 @@
           "Dock.Model.Avalonia": "[12.1.5, )",
           "TauTick.Adapters.Databento": "[1.0.0, )",
           "TauTick.Charting": "[1.0.0, )",
-          "TauTick.MarketData": "[1.0.0, )"
+          "TauTick.MarketData": "[1.0.0, )",
+          "TauTick.UI": "[1.0.0, )"
         }
       },
       "tautick.marketdata": {
@@ -426,6 +427,12 @@
         "type": "Project",
         "dependencies": {
           "TauTick.MarketData": "[1.0.0, )"
+        }
+      },
+      "tautick.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Avalonia": "[12.1.5, )"
         }
       },
       "Avalonia": {

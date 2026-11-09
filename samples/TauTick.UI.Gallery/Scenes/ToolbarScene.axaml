@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:gallery="using:TauTick.UI.Gallery" x:DataType="gallery:GalleryState"
+             xmlns:ui="using:TauTick.UI" xmlns:chart="using:TauTick.Charting"
+             x:Class="TauTick.UI.Gallery.Scenes.ToolbarScene" Classes="tau">
+  <StackPanel Spacing="12" Margin="16">
+    <TextBlock Text="Toolbar and content tabs" Classes="tauHeading" />
+    <TextBlock Text="SYNTHETIC · invented minute bars, including a gap and known zero volume" TextWrapping="Wrap" />
+    <ui:ChartToolbar x:Name="Toolbar" ShowContractYear="False" OpenCommand="{Binding Open}" IndicatorsCommand="{Binding Indicators}" />
+    <TabControl AutomationProperties.AutomationId="ContentTabs">
+      <TabItem Header="Synthetic chart"><chart:BarChart x:Name="PreviewChart" Height="300" Focusable="True" AutomationProperties.AutomationId="BarChart" /></TabItem>
+      <TabItem Header="Long content tab label"><TextBlock Margin="16" Text="Ordinary content tabs; no new product feature." TextWrapping="Wrap" /></TabItem>
+    </TabControl>
+    <TextBlock Text="{Binding Result}" TextWrapping="Wrap" AutomationProperties.AutomationId="SceneResult" />
+  </StackPanel>
+</UserControl>
