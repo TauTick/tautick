@@ -12,24 +12,21 @@ namespace TauTick.Desktop.Workspace;
 internal sealed class WorkspaceDockFactory : Factory
 {
     private readonly string _group;
-    private readonly bool _workspaceTabs;
     internal Action<Guid>? ClosedView { get; set; }
     internal Action<Guid>? ActivatedView { get; set; }
 
-    internal WorkspaceDockFactory(string group, bool workspaceTabs)
+    internal WorkspaceDockFactory(string group)
     {
         _group = group;
-        _workspaceTabs = workspaceTabs;
         HideDocumentsOnClose = false;
-        HostWindowLocator = new Dictionary<string, Func<IHostWindow?>> { [nameof(IDockWindow)] = () => new ReachableHostWindow() };
     }
 
     public override IDocumentDock CreateDocumentDock() => new DocumentDock
     {
         Id = Guid.NewGuid().ToString(), DockGroup = _group, IsCollapsable = true,
-        CanCreateDocument = false, CanCloseLastDockable = true, EnableWindowDrag = true,
-        AllowedDockOperations = _workspaceTabs ? DockOperationMask.Fill | DockOperationMask.Window : DockOperationMask.All,
-        AllowedDropOperations = _workspaceTabs ? DockOperationMask.Fill : DockOperationMask.All,
+        CanCreateDocument = false, CanCloseLastDockable = true, EnableWindowDrag = false,
+        AllowedDockOperations = DockOperationMask.All & ~DockOperationMask.Window,
+        AllowedDropOperations = DockOperationMask.All & ~DockOperationMask.Window,
         VisibleDockables = CreateList<IDockable>()
     };
 
@@ -60,8 +57,8 @@ internal sealed class WorkspaceDockFactory : Factory
     internal Document View(Guid id, string title, Func<Control> create) => new()
     {
         Id = id.ToString(), Title = title, DockGroup = _group, CanPin = false,
-        AllowedDockOperations = _workspaceTabs ? DockOperationMask.Fill | DockOperationMask.Window : DockOperationMask.All,
-        AllowedDropOperations = _workspaceTabs ? DockOperationMask.Fill : DockOperationMask.All,
+        AllowedDockOperations = DockOperationMask.All & ~DockOperationMask.Window,
+        AllowedDropOperations = DockOperationMask.All & ~DockOperationMask.Window,
         Content = new Func<IServiceProvider, object>(_ => create())
     };
 
@@ -101,17 +98,8 @@ internal sealed class WorkspaceDockFactory : Factory
         if (dockable is IDocument && Guid.TryParse(dockable.Id, out var id)) ActivatedView?.Invoke(id);
     }
 
-    public override IDockWindow? CreateWindowFrom(IDockable dockable)
-    {
-        var window = base.CreateWindowFrom(dockable);
-        if (window is not null)
-        {
-            window.Title = "TauTick — " + dockable.Title;
-            window.OwnerMode = DockWindowOwnerMode.None;
-            window.ShowInTaskbar = true;
-        }
-        return window;
-    }
+    // Native windows belong to the workspace, never to an inner chart docking root.
+    public override IDockWindow? CreateWindowFrom(IDockable dockable) => null;
 
     internal IDocumentDock FirstGroup(IRootDock root)
     {
@@ -211,43 +199,8 @@ internal sealed class WorkspaceDockFactory : Factory
         }
         var root = (IRootDock)Build(state.Root)!;
         InitLayout(root);
-        foreach (var saved in state.Windows)
-        {
-            var layout = (IRootDock)Build(saved.Root)!;
-            if (!Walk(layout).OfType<IDocument>().Any()) continue;
-            // Floating roots must collapse when their final document moves home, just like
-            // roots created by Dock's tear-off path. Main/nested surfaces remain persistent.
-            layout.IsCollapsable = true;
-            var window = CreateDockWindow();
-            window.Id = nameof(IDockWindow);
-            window.Title = "TauTick";
-            window.Layout = layout;
-            layout.Window = window;
-            window.OwnerMode = DockWindowOwnerMode.None;
-            window.ShowInTaskbar = true;
-            window.X = saved.Geometry.X;
-            window.Y = saved.Geometry.Y;
-            window.Width = saved.Geometry.Width;
-            window.Height = saved.Geometry.Height;
-            window.WindowState = saved.Geometry.Maximized ? DockWindowState.Maximized : DockWindowState.Normal;
-            AddWindow(root, window);
-            // Reconstruct all windows without asking the platform to activate each one.
-            // The controller activates only the saved global target after presentation.
-            if (window.Host is Window host) host.ShowActivated = false;
-            window.Present(false);
-        }
         if (state.FocusedView is { } focused && documents.TryGetValue(focused, out var view)) Select(view, activateWindow: false);
         return root;
     }
 
-    private sealed class ReachableHostWindow : HostWindow
-    {
-        protected override Type StyleKeyOverride => typeof(HostWindow);
-        protected override void OnOpened(EventArgs e)
-        {
-            if (Window is { } model) new WindowGeometry(model.X, model.Y, model.Width, model.Height,
-                model.WindowState == DockWindowState.Maximized).Apply(this);
-            base.OnOpened(e);
-        }
-    }
 }

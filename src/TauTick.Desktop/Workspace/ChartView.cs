@@ -76,7 +76,7 @@ internal sealed class ChartView : UserControl
         _document.Studies.Changed += RefreshStudies;
         _document.FitRequested += Chart.FitToData;
         Chart.VisibleTimeRangeChanged += RangeChanged;
-        _document.WindowOwner = GetWindow;
+        if (!_document.IsWorkspaceHosted) _document.WindowOwner = GetWindow;
         _document.SurfaceCreated(Chart);
         Refresh();
     }

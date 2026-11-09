@@ -1,153 +1,140 @@
-# Dockable candle workspace
+# Workspace windows and content tabs
 
-TAU-8 adds named workspaces around the existing CSV/candle viewer. A workspace owns
-its chart documents and internal tab/split layout. Detaching a workspace carries
-that layout into another native window of the same application. The selected
-library, ATAS X evidence and deliberate differences are in
-[workspace-reference.md](workspace-reference.md).
+TauTick has one active **workspace**: the complete arrangement of its native
+windows and their contents. Each window owns an ordered strip of **content tabs**.
+A content tab is empty or contains independently configured charts, chart tab groups
+and split panes. Named saved layouts replace the whole active arrangement when
+loaded. TAU-11 supersedes TAU-8's independently active workspace tabs.
 
 ## Controls and acceptance walkthrough
 
-Build/run with a compatible SDK from the [developer guide](development.md#build-test-and-launch)
-and locked dependencies:
+Build/run with the [developer guide](development.md#build-test-and-launch):
 
 ```sh
 dotnet restore TauTick.slnx --locked-mode
-dotnet build TauTick.slnx -c Release --no-restore
-dotnet test TauTick.slnx -c Release --no-build --no-restore
-dotnet run --project src/TauTick.Desktop -c Release --no-build --no-restore
+dotnet build TauTick.slnx --no-restore
+dotnet test TauTick.slnx --no-build --no-restore
+dotnet run --project src/TauTick.Desktop --no-build --no-restore
 ```
 
-1. In the initial chart enter the explicit full contract year and choose **Open
-   CSV…**. Use **2025** for the public ESZ5 reference in the
-   [sample-data guide](sample-data/README.md). Choose **+ Chart** and open another
-   CSV. These are separate documents even when they reference the same file.
-2. Pan with primary-button drag, wheel to zoom, hover to inspect exact UTC/OHLCV,
-   and choose **Fit** to reset that chart. **Ctrl+O** opens the picker and **Ctrl+0**
-   fits while focus is within that chart. Tab moves focus through ordinary controls.
-3. Choose **Chart ▾ → Split right / Split below** to move the selected chart into
-   a neighboring pane. Drag the splitter to resize. Drag chart tabs onto the
-   visible center target to tab together, an edge target to split, or along the
-   tab strip to reorder. Dock targets appear during a drag; move onto the center
-   square until the destination pane is highlighted before releasing to tab together.
-4. Drag a chart tab out of the window, or choose **Detach chart**. Move/resize or
-   maximize the native window. Open/cancel a file picker in this window and try a
-   malformed replacement: only this chart reports the error, retaining its previous
-   accepted data and viewport. Use **Dock back**, or drag its tab onto an appropriate
-   target in its workspace. Explicit Dock back selects the first tab group.
-5. Use **+ Workspace** for another independent layout. Edit the workspace name and
-   press Enter or leave the field. Reorder by dragging tabs, or use **Workspace ▾ →
-   Move tab left / right**. Detach the whole workspace with its menu or tab drag.
-   Its internal layout and chart state travel together. Use **Dock workspace back**
-   or drag its workspace tab onto the main workspace strip. Workspace tabs stay as
-   tabs; chart splits belong inside a workspace. Charts dock within their owning
-   workspace, including its floating chart windows.
-6. Choose **Save layout**, close the main window, and relaunch. Verify names/order,
-   active charts, splits, viewport and floating windows. Close one chart and confirm
-   its siblings still work. Close a detached workspace and confirm its charts close.
-7. With the app closed, move a referenced CSV away or change its bytes. Relaunch:
-   the affected chart explains the missing/changed input; it does not silently load
-   the replacement. Restore the original file and relaunch, or explicitly Open CSV
-   to accept new input. Test absent monitors on actual hardware when available.
+1. The initial content tab contains an unloaded candle chart. Enter the full
+   contract year before **Open CSV…**; use **2025** for the public ESZ5 reference in
+   the [sample-data guide](sample-data/README.md). Pan by dragging, wheel to zoom,
+   hover to inspect UTC/OHLCV and choose **Fit** to restore the accepted range.
+   **Ctrl+O**, **Ctrl+0** and **Ctrl+I** target the focused chart's picker, Fit and
+   indicator manager. Indicators use the [existing study capabilities](indicators.md).
+2. Click **+** in a window's top-level tab strip. It creates and selects an empty
+   content tab with no copied chart, dataset, year or settings. Edit its name in
+   the field below the strip; Enter or leaving the field applies the name.
+   **+ Chart** adds an independently configured candle chart to that tab.
+3. Create and name **A | B | C | +**. Drag **C** outside all application windows
+   and release: a second ordinary native window opens with **C | +**. Its **+**
+   creates empty **D**. Drag **B** from the first window onto the gap between C
+   and D: the result is **C | B | D | +**, with **A | +** in the first window.
+   Drag D to the beginning for **D | C | B | +**, then move B back.
+4. The entire destination strip accepts a content tab: the first/second half of
+   a header, insertion gaps, the + area and unused space. A blue marker shows the
+   insertion boundary. Drop in either direction, including into a window that has
+   only an empty tab. Other tabs retain their order. Drag along the same strip to
+   reorder. **Escape**, lost pointer capture, or releasing over ordinary application
+   content cancels the transfer. Ownership and order change only on a valid release.
+   **Detach tab** is an additional keyboard-accessible tear-off action.
+5. Inside a populated content tab, **+ Chart** creates a sibling chart. **Chart ▾ →
+   Split right / Split below** creates resizable panes. Use Dock's chart targets to
+   group or split charts inside that content tab. Native window creation belongs
+   to the top-level content strip; the inner chart tabs remain in their content tab.
+   Moving the content tab transfers its whole internal arrangement.
+6. Enter a workspace name in the application row and choose **Save layout**. Save
+   another arrangement under a different name. Select a saved name and choose
+   **Load layout** from any workspace window: all prior content/windows are replaced.
+   The invoking window is reused, and the saved additional windows are reconstructed.
+7. Choose **Exit application** to save the complete current arrangement and close
+   all application windows. Relaunch and verify membership/order, empty tabs,
+   selected tabs/charts, chart input/settings/range and window geometry. Closing
+   one window through its title bar instead closes only that window and its content.
+8. With the app closed, move or alter a referenced CSV. Restart or load the saved
+   layout: that chart explains the unavailable/changed input without silently
+   accepting replacement bytes. Restore the original input or explicitly Open CSV
+   with the intended full year. Check absent monitors on physical hardware when
+   available; restored bounds are clamped to available screens.
 
-Metadata describes available coverage, not necessarily a complete trading session.
-All data and axes retain UTC semantics. Changing the year affects the next import,
-not an accepted dataset. Instruments/timezones, linked charts and indicator controls
-are outside this task.
+## Ownership, commands and close policy
 
-## Lifetime and close policy
+A workspace window owns content tabs; a content tab owns its chart documents and
+restricted Dock layout. A move transfers the same tab and chart documents, with
+stable identities, accepted dataset references, explicit year, viewport, settings,
+indicators and any pending imports. Native host controls may be rebuilt. Moving
+never imports again, cancels work, disposes studies or emits a final chart close.
+Window targeting comes from current workspace ownership, independently of a
+transient chart surface. Indicator manager windows close on transfer and reopen
+against the receiving host; as elsewhere, unapplied editor fields are discarded.
 
-`ChartDocument` owns the import session, immutable accepted dataset, current viewport,
-explicit year and feature settings. A Dock `Document` presents a rebuildable
-`ChartView`. Detach, redock, regroup and workspace moves can recreate the control;
-they do not reimport data, cancel a load, or send the final chart-close notification.
-The new surface receives the same accepted dataset reference and saved time range.
-Hover inspection and pointer capture are transient surface interactions.
+Selecting an empty tab clears the active chart. Activating a native window targets
+its selected tab's last active chart. A chart's own Open/Fit/Indicators actions
+resolve that document; file pickers resolve its current native window.
 
-Closing a chart tab is final: it cancels only that chart's pending load, rejects
-late results, releases its dataset/control references, disposes registered features,
-and sends `Closed` once. Closing a floating window closes its contained chart(s),
-or the contained workspace and all of its charts, including its separately floating
-charts. Use Dock back when the intent is to keep them. Closing the main window saves
-the whole arrangement first, then closes every document and floating host. A save
-failure leaves it open with retry and **Close without saving** actions.
+Closing a chart is final and affects only that document. Closing a content tab
+closes all of its charts. Closing or transferring a window's last content tab
+leaves a new empty tab, retaining a usable window and +. Closing a native window
+closes only its content; other windows remain usable. Closing the last native
+window saves the remaining active arrangement and exits. **Exit application** saves
+all currently open windows before closing the whole application.
 
-Inputs load/verify on workers. Picker selection and state publication stay on the UI
-thread. Each picker obtains the current native window from its attached chart view.
-Closing during selection rejects/disposes the eventual selection. A reader that
-ignores cancellation still owns its borrowed stream until it returns; it cannot
-publish into a closed document.
+Actual close cancels pending work, rejects late results, releases data/control
+references, disposes registered features and sends each document's `Closed` once.
+A failed final save keeps the window open with retry and **Close without saving**.
+A picker that returns after final close cannot publish a selection. A reader that
+ignores cancellation retains its borrowed stream until it returns.
 
-## Restoration and format
+## Named layouts, restoration and migration
 
-The app saves `TauTick/workspace-v1.json` under .NET's `LocalApplicationData`
-(typically `$XDG_DATA_HOME` or `~/.local/share` on Linux, `%LOCALAPPDATA%` on Windows).
-Save is explicit and also occurs on normal main-window close. It is not continuous
-crash recovery or an experiment store. Writes use a same-directory temporary file
-and atomic replacement; the previous file becomes `.backup`.
+The active arrangement is stored at `TauTick/workspace-v1.json` under .NET's
+`LocalApplicationData` (`$XDG_DATA_HOME` or `~/.local/share` on Linux and
+`%LOCALAPPDATA%` on Windows). The filename is retained for compatibility; its current
+schema is **version 2**. Explicit **Save layout** also writes a named snapshot in
+`TauTick/layouts/`. Names are kept in the snapshot; filenames use a hash of the
+name, so Unicode and path punctuation do not become filesystem paths. Automatic
+close/exit saves update the active snapshot, leaving explicitly named snapshots
+available for later loading. Save/load operations are coordinated across windows.
+This is local layout persistence, not continuous crash recovery or experiment storage.
 
-Version 1 contains stable workspace/chart GUIDs, a restricted root/tab/split tree,
-tab order and active indexes, each workspace’s active chart across docked/floating
-windows, proportions, native window
-positions/sizes/maximized state, chart year/range, and feature settings. No Dock
-runtime types are serialized. Bounds use desktop pixel positions and logical window
-sizes. Restored geometry is clamped to available screen work areas; an absent monitor
-falls back to the primary available screen. Physical mixed-DPI behavior still needs
-hardware validation.
+Version 2 records the workspace name, stable window/tab/chart identities, each
+window's ordered tabs and selection, the active window/chart, normal geometry and
+maximized state, empty tabs, each tab's root/tab/split tree, proportions, focused
+chart and chart input/settings state. Dock runtime objects and market data are
+never serialized. Positions use desktop pixels and sizes use logical units;
+restored geometry is clamped to available screen work areas.
 
-Restored floating windows are presented without activating each in turn. Once the
-queued layout presentation completes, the saved global chart/window is activated.
-CSV verification then runs independently, so later user focus changes are not
-replaced when an input finishes loading.
+Compatible version 1 files migrate on load: former workspace pages become content
+tabs in the corresponding window, and separately floating chart layouts become
+content tabs in ordinary windows. Chart identities, settings, references and
+internal layouts are retained. The source file is unchanged until save. Saves use
+a same-directory temporary file and atomic replacement; the prior file becomes
+`.backup`. Corrupt/unsupported layouts retain their source and produce a recoverable
+explanation; a named load failure keeps the current arrangement.
 
-CSV references contain an absolute local path, length and SHA-256. A worker hashes
-and parses the same private temporary snapshot, avoiding a verify/reopen race and
-an extra whole-file memory copy. The spool is deleted on close. Market data is never
-embedded in the layout or committed to Git. Layout files contain local paths and
-should be treated as personal settings, not shared project fixtures.
+Saved CSV references contain an absolute local path, byte length and SHA-256.
+Verification and parsing use the same private temporary snapshot on a worker.
+Missing/changed inputs retain the saved reference, accepted year and range for
+recovery; explicit Open CSV accepts replacement input. Unknown study settings are
+retained until the feature can restore them. Unsupported chart types are skipped
+with an explanation while supported content remains usable. Invalid viewport
+ranges fit verified data with a notice. Layout files include personal local paths.
 
-Restart verifies each reference before parsing, using the accepted import's full
-year. Failed verification retains the reference/year/range for another restart;
-explicit Open CSV is how a user accepts changed data. Charts awaiting startup
-verification cannot start a competing import. An invalid saved range fits verified
-data with an explanation. Invalid JSON, unsupported format versions, duplicate
-owners and malformed/oversized trees open a safe workspace with an explanation.
-Unsupported chart types are skipped with a notice; supported charts remain usable
-and the previous file is backed up on save. Unknown feature settings remain in the
-supported chart's state until their feature registers. Settings rejected by a
-participant are retained rather than overwritten by defaults.
+## Chart-host interface
 
-## Chart-host handoff for TAU-9
+[IChartHost.cs](../src/TauTick.Desktop/Workspace/IChartHost.cs), exposed as
+`MainWindow.ChartHost`, is an Avalonia UI-thread contract shared by all workspace
+windows. `Charts` lists live documents. `ActiveChart`, `ActiveChartChanged` and
+`ActivateChart(id)` target the selected/focused chart across windows.
 
-The public API is [IChartHost.cs](../src/TauTick.Desktop/Workspace/IChartHost.cs),
-available as `MainWindow.ChartHost`. Access it on the Avalonia UI thread:
+`IChartDocument.Id`, `Dataset`, `VisibleTimeRange`, `Changed` and `DatasetChanged`
+belong to the document, independently of its control. `FitToData` affects that
+chart only. `Closed` denotes final disposal. A unique-key `IChartSettingsParticipant`
+contributes versioned JSON through Capture/Restore and is disposed at final close.
+Unknown or rejected settings are preserved; capture failures abort save. Study
+calculations and source adapters remain independent of the workspace/drawing code.
 
-- `Charts` lists live chart documents. A document's `Id` is stable across control
-  recreation and restart. `Dataset`, `VisibleTimeRange`, `DatasetChanged` and
-  `Changed` describe document state, independently of Dock objects.
-- `ActiveChart`, `ActiveChartChanged` and `ActivateChart(id)` target the focused or
-  selected chart across native windows. Commands should resolve `ActiveChart` at
-  invocation time; a missing/closed ID cannot be activated.
-- `FitToData()` changes only that document. `Closed` is final disposal, never a
-  move notification. Unsubscribe external observers at final close.
-- Register one `IChartSettingsParticipant` per unique feature key. `Capture()`
-  returns a version plus JSON value; `Restore()` receives the prior value when
-  present. The feature owns migrations/validation of its payload. The document
-  owns participant disposal on actual close. Unknown or unapplied values are
-  preserved. Capture failures abort the save and surface the retry/close choice.
-
-TAU-9 owns indicator management, calculation/rendering and indicator-specific
-payloads. It should consume this host/document lifetime rather than creating a
-second docking system. No indicator implementation or speculative module is added
-here. The only chart-control extension is a public validated time-range value,
-restore method and change event; parsing and market invariants remain unchanged.
-
-## Validation record
-
-See [workspace-validation.md](workspace-validation.md) for checks actually executed,
-native environment details and outstanding acceptance work. Automated tests use
-clearly identified synthetic prices/CSV bytes and temporary files outside Git.
-The developer guide's [native Linux procedure](development.md#native-visual-checks-on-linux)
-provides isolated Xvfb, D-Bus, profile and capture commands. The earlier
-[MVP measurements](mvp-validation.md) are historical and are not measurements of
-this workspace implementation.
+See [workspace-validation.md](workspace-validation.md) for measured checks and
+remaining platform acceptance. Tests use identified synthetic fixtures; downloaded
+inputs, native captures and disposable drivers stay outside Git.

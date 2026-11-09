@@ -1,6 +1,9 @@
 # Workspace reference and docking choice
 
-Evidence inspected **2026-11-08**, before workspace implementation.
+The current interaction contract is the user's explicit **workspace → windows →
+tabs** clarification in TAU-11, retrieved 2026-11-09. It supersedes the TAU-8
+multiple-workspace-tab interpretation. ATAS X runtime access is not a prerequisite.
+The following external evidence was inspected **2026-11-08** for the earlier task.
 
 ## ATAS X evidence and limits
 
@@ -23,10 +26,11 @@ or establish every ATAS X gesture. Classic docking documentation and Classic-onl
 changelog entries are not evidence for X. Exact current X tear-off, target visuals,
 rename and close gestures remain unverified.
 
-TauTick follows the verified tab/workspace direction and the explicit TAU-8
-requirements. Deliberate local choices are visible Dock targets for chart grouping
-and splits, explicit detach/redock actions alongside dragging, per-chart CSV/year
-controls, and a versioned local layout file with verified input references. No
+TauTick follows TAU-11 for the window/tab model. The shared content strip accepts
+insertions across normal windows through native pointer capture and screen-coordinate
+hit testing, with a visible insertion marker and commit on release. Dock remains
+inside content tabs for chart grouping and splits. Other local choices are explicit
+Detach tab, per-chart CSV/year controls and versioned layouts with verified inputs. No
 ATAS account, synchronized price axes, trading controls or market connections are
 introduced. The acceptance walkthrough documents TauTick's gestures directly.
 
@@ -39,11 +43,11 @@ provides net10.0 assets and depends on **Avalonia 12.1.5**, matching the reposit
 
 The [upstream guide](https://wieslawsoltes.github.io/Dock/articles/README.html) and
 pinned source expose tabbed documents, proportional horizontal/vertical containers,
-drag targets, floating native hosts and close-versus-move callbacks. The code-only
-sample uses rebuildable document content, suitable for hosting a nested workspace
-layout inside a detachable workspace document. TauTick uses this composition and
-keeps Dock types inside its desktop workspace implementation. It does not build a
-new docking engine or deserialize arbitrary library/runtime types.
+drag targets, floating native hosts and close-versus-move callbacks. TAU-11 retains rebuildable
+chart documents and Dock tab/split containers inside each content tab. Workspace
+windows and top-level tabs are owned by the desktop controller; inner Dock roots
+cannot create native windows. Dock types remain inside the desktop implementation;
+arbitrary runtime types are never deserialized.
 
 Package/source compatibility is preliminary evidence. Application tests and native
 checks must establish the actual integration; Windows and physical multi-monitor

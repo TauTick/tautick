@@ -4,6 +4,14 @@ TauTick connects discretionary observation of recorded markets with repeatable e
 
 ## Language
 
+**Workspace**:
+The complete arrangement of TauTick's windows and their contents. One workspace is active at a time; a named saved layout records that arrangement.
+_Avoid_: Workspace tab for a content tab
+
+**Content tab**:
+A named page in a workspace window that contains an independent chart layout or is empty. Moving a content tab carries its contents and settings to its receiving window.
+
+
 **Bar**:
 A summary of market activity over a defined interval, identified by its instrument and interval boundaries. Its open, high, low, close and volume can be supplemented by executed volume at individual prices.
 

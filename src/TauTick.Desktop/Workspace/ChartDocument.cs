@@ -80,8 +80,12 @@ public sealed class ChartDocument : IChartDocument
     public event Action? Closed;
     internal bool IsProduction { get; }
     internal Func<Window?>? WindowOwner { get; set; }
+    internal bool IsWorkspaceHosted { get; set; }
     internal BarChart LatestChart { get; private set; } = new();
     internal Action? Activate { get; set; }
+    // Managers are native children of their chart's current host. Reopen against the
+    // receiving window after a transfer; chart studies/settings themselves stay alive.
+    internal void HostChanged() => _indicatorManager?.Close();
     internal event Action? FitRequested;
 
     internal void SurfaceCreated(BarChart chart) => LatestChart = chart;

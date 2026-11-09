@@ -10,6 +10,14 @@ The desktop owner retains loading, error/cancellation handling, active chart tar
 
 `SettingsPanel` exposes `DisplayNameText`, nullable `StrokeWidth`, `PriceDisplayIndex`, `ErrorText`, `CanApply` and Apply/Cancel commands. The caller owns drafts, validation and persistence; the gallery's `GalleryState` supplies deterministic sample behavior. The selector demonstrates two display choices; this initial panel is not the production indicator editor. `PresentationCommand` is a synchronous action adapter. An owner starting async work must retain its own cancellation/error lifetime, as the desktop already does.
 
+`ContentTabBar` and its AXAML `ContentTabHeader` present ordered content tabs,
+selection, close, + and insertion feedback. `SetTabs` accepts presentation-only
+`ContentTabItem` values. Add/Selection/Close and drag events are requests; the owner
+commits transfers. `InsertionAt` uses screen coordinates, including headers and
+unused strip space; Escape/capture loss cancels. Pointer capture starts after a
+movement threshold. No document, window ownership or persistence lives here. The
+gallery toolbar scene exercises this exact strip with synthetic chart/empty tabs.
+
 ## Resources, fonts and component authoring
 
 Load framework `FluentTheme`, `DockFluentTheme`, then `new TauTick.UI.Theme()`. Both gallery and desktop use that order and `.WithInterFont()` in the native AppBuilder. Consumers supply `Avalonia.Fonts.Inter`; the `TauFont` resource addresses the same bundled font. No external asset download is needed.

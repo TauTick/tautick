@@ -140,7 +140,7 @@ public sealed class IndicatorTests
         await WorkspaceTestUi.Ready(window);
         try
         {
-            var controller = window.Controller; var tab = controller.Workspaces[0]; var first = controller.InitialChart;
+            var controller = window.Controller; var tab = controller.Windows[0].Tabs[0]; var first = controller.InitialChart;
             first.ContractYearText = "2025"; await first.Session.OpenAsync();
             var study = first.Studies.Add(VwapDefinition.Id); await first.Studies.Pending;
             first.Studies.Apply(study, JsonSerializer.SerializeToElement(new VwapSettings(AnchorUtcTicks: first.Dataset!.Bars[1].StartUtc.Ticks)), new("#FF0000"), true);
@@ -149,11 +149,12 @@ public sealed class IndicatorTests
             var second = controller.AddChart(tab, picker: picker);
             second.ContractYearText = "2025"; await second.Session.OpenAsync();
             Assert.Empty(second.Studies.Instances);
-            controller.SplitChart(tab, second.Id, false); controller.DetachChart(tab, first.Id);
+            controller.SplitChart(tab, second.Id, false);
+            var original = controller.Owner(tab);
+            controller.DetachTab(tab);
             await Task.Delay(100, TestContext.Current.CancellationToken);
-            controller.RedockChart(tab, first.Id); controller.DetachWorkspace(tab);
-            await Task.Delay(100, TestContext.Current.CancellationToken);
-            controller.RedockWorkspace(tab); controller.ActivateChart(first.Id);
+            controller.MoveTab(tab, original, 0);
+            controller.ActivateChart(first.Id);
             Assert.Same(result, study.Result);
             var saved = controller.Capture(null);
             await controller.RestoreAsync(saved);
@@ -164,7 +165,7 @@ public sealed class IndicatorTests
             Assert.Equal(study.Saved.Appearance, instance.Saved.Appearance);
             Assert.Equal(3, ((VwapResult)instance.Result!).Values[2]);
         }
-        finally { window.Close(); File.Delete(path); }
+        finally { window.Controller.Close(); window.Close(); File.Delete(path); }
     }
     [AvaloniaFact]
     public async Task UnknownSettingsAndUnsupportedInputsAreRetainedAndNeverCalculated()
@@ -314,7 +315,7 @@ public sealed class IndicatorTests
             await store.SaveAsync(owner.Capture(null));
             var (restored, error) = await store.LoadAsync();
             Assert.Null(error);
-            var settings = Assert.Single(Assert.Single(restored!.Workspaces).Charts).Settings["indicators"];
+            var settings = Assert.Single(Assert.Single(Assert.Single(restored!.Windows).Tabs).Charts).Settings["indicators"];
             Assert.True(JsonElement.DeepEquals(raw.RootElement, settings.Value));
             // Rejection also leaves an existing collection intact rather than partially replacing it.
             var existing = document.Studies.Add(VwapDefinition.Id);
