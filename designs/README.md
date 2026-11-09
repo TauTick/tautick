@@ -15,6 +15,14 @@ The clearest stated preference is **[00-first-attempt.png](00-first-attempt.png)
 
 Images 00, 01 and 02 are **1586 × 992** pixels; 05 is **1585 × 992** pixels. Filenames identify explorations, not an approval order.
 
+## Chart research workflow concept
+
+[06 — Chart research workflow](06-chart-research-workflow.png) is a **1536 × 1024** static design study extending the dark desktop direction above. It shows a selected VWAP-touch interval, separate preceding preparation history, candle/footprint presentation, price/trade/MBO coverage lanes, action readiness, and preserved indicator settings. The lower annotation strip depicts selection gestures, simulated preparation, a conceptual return to the chart, and an alternate selection with missing detail.
+
+The alternate state retains price candles and summary-backed session VWAP while marking the range volume profile and MBO replay unavailable. Preparation and any future replay/evaluation path are illustrative; no replay or strategy was executed.
+
+Created with the built-in image generation tool. The final raster was visually inspected on Windows. This is **not a native Avalonia capture**: no native interactions, responsiveness, selection logic, or Windows/Linux acceptance were tested. Plotted values, timestamp positioning, footprint rows, and coverage alignment are illustrative rather than validated fixtures. No feature implementation accompanies this image, and it does not establish approval of new design choices.
+
 ## Direction to carry forward
 
 - **Start with the structure of 00 and compare the darker surfaces in 05.** Keep the chart dominant, the tool rail compact and the inspector on the right. Preserve the distinction between global commands, workspace tabs, chart tabs and chart-local actions.
