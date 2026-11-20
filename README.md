@@ -100,6 +100,17 @@ The desktop shell uses the [production CSV reader](src/TauTick.Adapters.Databent
 
 See the [developer and contract guide](docs/development.md) for setup and component ownership, the [chart viewer MVP and modular design](docs/charting-mvp.md) for the remaining scope and proposed performance checks, and the [sample-data guide](docs/sample-data/README.md) for eventual input download instructions. Market data stays outside the repository.
 
+## Architecture
+
+[![TauTick architecture: .NET runtime, Avalonia UI, providers, source adapters and dimmed future capabilities](docs/assets/architecture.png)](docs/assets/architecture.png)
+
+The diagram shows the .NET runtime, Avalonia/Skia UI, external Databento input,
+source-adapter boundary and current production projects. Black arrows show project
+dependencies; the orange arrow shows CSV input. Dimmed components show future
+capabilities whose boundaries remain provisional. See the [architecture reference](docs/architecture.md)
+for ownership and update instructions, or open the
+[editable Excalidraw source](docs/assets/architecture.excalidraw).
+
 ## Testing
 
 TauTick has a native UI design gallery and [shared Avalonia controls](src/TauTick.UI/README.md), used by the desktop application. The [gallery guide](samples/TauTick.UI.Gallery/README.md) explains the persistent native edit-and-preview workflow and its validation limits.
