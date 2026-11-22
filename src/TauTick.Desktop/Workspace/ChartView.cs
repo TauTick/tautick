@@ -32,7 +32,7 @@ internal sealed class ChartView : UserControl
         indicatorMenu.Click += (_, _) => document.OpenIndicators();
         Chart.ContextMenu = new ContextMenu { ItemsSource = new[] { indicatorMenu } };
         if (commands?.Invoke() is { } menu) _toolbar.AdditionalContent = menu;
-        var header = new StackPanel { Spacing = 3, Margin = new(6), Children = { _toolbar, _summary, _status, _error, _notice, _legend } };
+        var header = new StackPanel { Spacing = 2, Margin = new(6, 3), Children = { _toolbar, _summary, _status, _error, _notice, _legend } };
         var panel = new DockPanel();
         DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
         panel.Children.Add(header);

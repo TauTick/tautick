@@ -50,6 +50,18 @@
     </ControlTheme>
   </Styles.Resources>
   <Style Selector="Button.tau"><Setter Property="Theme" Value="{DynamicResource TauButton}" /></Style>
+  <Style Selector="Button.tauCompact">
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="Padding" Value="8,3" />
+  </Style>
+  <Style Selector="Button.tauCaption">
+    <Setter Property="Width" Value="38" />
+    <Setter Property="MinHeight" Value="38" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="0" />
+  </Style>
+  <Style Selector="Button#CloseWindow:pointerover"><Setter Property="Background" Value="#E81123" /><Setter Property="Foreground" Value="White" /></Style>
   <Style Selector="UserControl.tau">
     <Setter Property="FontFamily" Value="{DynamicResource TauFont}" />
     <Setter Property="FontSize" Value="{DynamicResource TauBodySize}" />

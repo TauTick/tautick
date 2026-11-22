@@ -73,14 +73,24 @@ Replace `FitData` with `DisplayName` for settings or `StateAction` for controls.
 
 Important IDs: `SceneSelector`, `ResetScene`, `CompactPreview`, `WidePreview`, `GalleryStatus`, `CurrentScene`; toolbar `OpenCsv`, `FitData`, `OpenIndicators`, `BarChart`, `ContentTabs`; settings `DisplayName`, `LineWidth`, `PriceDisplay`, `SettingsError`, `ApplySettings`, `CancelSettings`; controls `StateAction`, `IconAction`, `StateToggle`, `StateCheckbox`, `StateText`, `StateInvalid`, `StateNumber`, `StateSelector`, `StateMenu`; result `SceneResult`. Scope repeated template peers to the intended scene/window/process. Popup peers can be separate native windows belonging to that PID.
 
-The toolbar scene uses the production `ContentTabBar`: select/close a tab, add an
-empty tab with +, reorder with a real drag and cancel a drag with Escape. Reset
-reconstructs its deterministic synthetic tabs. Cross-window transfers are exercised
-in the desktop application.
+The gallery's first row uses the production `WindowHeader`, including caption
+buttons and native drag regions. The toolbar scene owns its synthetic content tabs:
+select a tab, add an empty tab with +, use Rename/Close/Detach through the context
+menu (also Shift+F10), reorder with a real drag and cancel with Escape. Long labels
+truncate and overflow arrows scroll without hiding + or the caption buttons.
+Reset reconstructs deterministic synthetic tabs. Detach reports a sample request;
+cross-window ownership is exercised in Desktop. Menu → Add chart selects the
+synthetic chart; Menu → Exit application closes the gallery. The compact toolbar
+also shows a synthetic full-year input. Other scenes retain the same window chrome.
+
+Exercise normal/maximized states, blank-header dragging and double-click restore,
+and native resizing. Use distinct pointer presses/releases for native double-click
+checks and inspect the resulting state and pixels. On Linux the shared drag region
+recognizes the double-click before handing an actual drag to the window manager.
 
 Exercise real Tab/Shift+Tab/Space/Return, hover, held press, typing, selector/menu navigation, settings Apply/Cancel and chart wheel/Fit. The red input is a labeled demonstration state; Settings supplies actual draft validation. Test compact/wide sizes and the long selector/tab labels. Xvfb checks do not prove physical DPI, GPU performance, Windows or Wayland behavior.
 
-On Windows, inspect the gallery PID through UI Automation (Accessibility Insights or PowerShell `UIAutomationClient`) and query `AutomationId` before supplying native input. Repeat launch, selection/reset, shared style edit, malformed-edit recovery and close. These Windows operations remain unverified in this implementation environment; do not infer them from a Linux build.
+On Windows, inspect the gallery PID through UI Automation (Accessibility Insights or PowerShell `UIAutomationClient`) and query `AutomationId` before supplying native input. Repeat launch, selection/reset, shared style edit, malformed-edit recovery and close. The [validation record](VALIDATION.md) distinguishes observed Windows/Linux checks from outstanding scenarios.
 
 Close with the window close button or Alt+F4, require process exit code 0, then exit the isolated shell so its traps/wrappers stop the owned WM, bus and Xvfb. Confirm that the owned PID/windows/helpers are gone. Direct HotAvalonia has no separate watcher server here. Do not kill another user's/agent's processes or reuse their profile. Generated logs/captures and disposable drivers stay outside Git.
 

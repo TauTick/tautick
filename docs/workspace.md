@@ -3,8 +3,10 @@
 TauTick has one active **workspace**: the complete arrangement of its native
 windows and their contents. Each window owns an ordered strip of **content tabs**.
 A content tab is empty or contains independently configured charts, chart tab groups
-and split panes. Named saved layouts replace the whole active arrangement when
-loaded. TAU-11 supersedes TAU-8's independently active workspace tabs.
+and split panes. The application restores this arrangement automatically on startup
+and saves it on exit. Workspace naming and named-layout management are hidden;
+existing stored layouts remain compatible. TAU-11 supersedes TAU-8's independently
+active workspace tabs; TAU-13 integrates content tabs into the window header.
 
 ## Controls and acceptance walkthrough
 
@@ -24,9 +26,11 @@ dotnet run --project src/TauTick.Desktop --no-build --no-restore
    **Ctrl+O**, **Ctrl+0** and **Ctrl+I** target the focused chart's picker, Fit and
    indicator manager. Indicators use the [existing study capabilities](indicators.md).
 2. Click **+** in a window's top-level tab strip. It creates and selects an empty
-   content tab with no copied chart, dataset, year or settings. Edit its name in
-   the field below the strip; Enter or leaving the field applies the name.
-   **+ Chart** adds an independently configured candle chart to that tab.
+   content tab with no copied chart, dataset, year or settings. Right-click a tab
+   (or focus it and press **Shift+F10**) for **Rename**, **Close** and **Detach**.
+   Rename edits the tab in place: Enter or leaving the field applies a nonempty
+   name; Escape cancels. **Menu → Add chart** adds an independent candle chart to
+   the selected content tab in that window.
 3. Create and name **A | B | C | +**. Drag **C** outside all application windows
    and release: a second ordinary native window opens with **C | +**. Its **+**
    creates empty **D**. Drag **B** from the first window onto the gap between C
@@ -38,21 +42,29 @@ dotnet run --project src/TauTick.Desktop --no-build --no-restore
    only an empty tab. Other tabs retain their order. Drag along the same strip to
    reorder. **Escape**, lost pointer capture, or releasing over ordinary application
    content cancels the transfer. Ownership and order change only on a valid release.
-   **Detach tab** is an additional keyboard-accessible tear-off action.
-5. Inside a populated content tab, **+ Chart** creates a sibling chart. **Chart ▾ →
+   **Detach** in the context menu is an additional keyboard-accessible tear-off action.
+   Long names are truncated with full-name tooltips. Overflow arrows scroll the
+   tabs; keyboard focus reveals an offscreen tab. Menu, + and window buttons stay
+   visible at the 560-DIP minimum width. The pinned + also accepts an append drop.
+5. Inside a populated content tab, **Menu → Add chart** creates a sibling chart. **Chart ▾ →
    Split right / Split below** creates resizable panes. Use Dock's chart targets to
    group or split charts inside that content tab. Native window creation belongs
    to the top-level content strip; the inner chart tabs remain in their content tab.
    Moving the content tab transfers its whole internal arrangement.
-6. Enter a workspace name in the application row and choose **Save layout**. Save
-   another arrangement under a different name. Select a saved name and choose
-   **Load layout** from any workspace window: all prior content/windows are replaced.
-   The invoking window is reused, and the saved additional windows are reconstructed.
-7. Choose **Exit application** to save the complete current arrangement and close
+6. Drag empty header space to move the native window; double-click that space to
+   maximize/restore. Tab drags and Menu/button input remain separate. Exercise the
+   caption buttons, native resize edges, supported snapping and keyboard window
+   commands in normal and maximized states. Repeat at compact/wide sizes and
+   representative scaling. Every detached window uses the same header.
+7. Choose **Menu → Exit application** to save the complete current arrangement and close
    all application windows. Relaunch and verify membership/order, empty tabs,
-   selected tabs/charts, chart input/settings/range and window geometry. Closing
-   one window through its title bar instead closes only that window and its content.
-8. With the app closed, move or alter a referenced CSV. Restart or load the saved
+   selected tabs/charts, chart input/settings/range and window geometry.
+   Check two normal 560x632-DIP windows at scale 2 as well as saved maximized
+   windows; both headers must remain reachable after startup and another restart.
+   Closing one window through its title bar instead closes only that window and its content.
+   If saving fails, windows stay usable. **Retry** repeats the pending save and
+   close/exit; **Close without saving** completes that same close/exit intent.
+8. With the app closed, move or alter a referenced CSV. Restart with the saved
    layout: that chart explains the unavailable/changed input without silently
    accepting replacement bytes. Restore the original input or explicitly Open CSV
    with the intended full year. Check absent monitors on physical hardware when
@@ -86,16 +98,17 @@ A failed final save keeps the window open with retry and **Close without saving*
 A picker that returns after final close cannot publish a selection. A reader that
 ignores cancellation retains its borrowed stream until it returns.
 
-## Named layouts, restoration and migration
+## Automatic persistence, restoration and migration
 
 The active arrangement is stored at `TauTick/workspace-v1.json` under .NET's
 `LocalApplicationData` (`$XDG_DATA_HOME` or `~/.local/share` on Linux and
 `%LOCALAPPDATA%` on Windows). The filename is retained for compatibility; its current
-schema is **version 2**. Explicit **Save layout** also writes a named snapshot in
-`TauTick/layouts/`. Names are kept in the snapshot; filenames use a hash of the
-name, so Unicode and path punctuation do not become filesystem paths. Automatic
-close/exit saves update the active snapshot, leaving explicitly named snapshots
-available for later loading. Save/load operations are coordinated across windows.
+schema is **version 2**. Earlier named snapshots in `TauTick/layouts/` and their
+stored names remain intact and compatible with the existing persistence layer.
+The interface exposes no workspace name, switcher or named save/load action.
+Automatic close/exit saves update only the active snapshot and preserve its
+stored workspace name. Save/load operations are coordinated across windows;
+an exit requested during restore waits for persistence to finish.
 This is local layout persistence, not continuous crash recovery or experiment storage.
 
 Version 2 records the workspace name, stable window/tab/chart identities, each

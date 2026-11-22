@@ -1,17 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="using:TauTick.UI"
+             xmlns:chrome="using:Avalonia.Controls.Chrome"
              x:Class="TauTick.UI.ContentTabBar" Classes="tau" Focusable="True">
-  <Border Background="{DynamicResource TauSurface}" BorderBrush="{DynamicResource TauBorder}" BorderThickness="0,0,0,1">
-    <Grid x:Name="Strip" MinHeight="38" ClipToBounds="True">
-      <ScrollViewer x:Name="TabScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <StackPanel Orientation="Horizontal">
-          <StackPanel x:Name="Headers" Orientation="Horizontal" />
-          <Button x:Name="AddContentTab" Content="+" Classes="tau" MinWidth="36" Margin="3,2"
-                  AutomationProperties.AutomationId="AddContentTab" AutomationProperties.Name="Add empty content tab" ToolTip.Tip="Add empty content tab" />
-        </StackPanel>
+  <ui:WindowDragRegion x:Name="DragBackground" Background="{DynamicResource TauSurface}">
+    <Grid x:Name="Strip" ColumnDefinitions="Auto,*,Auto,Auto" Height="38" ClipToBounds="True">
+      <Button x:Name="ScrollTabsLeft" Content="‹" Classes="tau tauCompact" Width="24" IsVisible="False"
+              chrome:WindowDecorationProperties.ElementRole="User" AutomationProperties.Name="Scroll tabs left" ToolTip.Tip="Scroll tabs left" />
+      <ScrollViewer x:Name="TabScroll" Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="Headers" Orientation="Horizontal" HorizontalAlignment="Left" />
       </ScrollViewer>
-      <Border x:Name="InsertionMarker" Width="3" Background="{DynamicResource TauAccent}" HorizontalAlignment="Left"
+      <Button x:Name="ScrollTabsRight" Grid.Column="2" Content="›" Classes="tau tauCompact" Width="24" IsVisible="False"
+              chrome:WindowDecorationProperties.ElementRole="User" AutomationProperties.Name="Scroll tabs right" ToolTip.Tip="Scroll tabs right" />
+      <Button x:Name="AddContentTab" Grid.Column="3" Content="+" Classes="tau tauCompact" Width="32" Margin="2,2"
+              chrome:WindowDecorationProperties.ElementRole="User"
+              AutomationProperties.AutomationId="AddContentTab" AutomationProperties.Name="Add empty content tab" ToolTip.Tip="Add empty content tab" />
+      <Border x:Name="InsertionMarker" Grid.ColumnSpan="4" Width="3" Background="{DynamicResource TauAccent}" HorizontalAlignment="Left"
               IsHitTestVisible="False" IsVisible="False" />
     </Grid>
-  </Border>
+  </ui:WindowDragRegion>
 </UserControl>

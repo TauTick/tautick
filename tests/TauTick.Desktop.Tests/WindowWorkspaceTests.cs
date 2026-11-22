@@ -28,13 +28,13 @@ public sealed partial class WorkspaceTests
         {
             await WorkspaceTestUi.Ready(window);
             for (var i = 0; owner.PersistenceBusy && i < 100; i++) await Task.Delay(10);
-            window.GetVisualDescendants().OfType<TextBox>().Single(c => c.Name == "LayoutName").Text = "First";
-            Assert.True(await window.SaveAsync());
+            owner.Name = "First";
+            Assert.True(await window.SaveAsync(saveNamed: true));
             var detached = owner.DetachTab(owner.SelectedTab!);
             var receiver = detached.Host!;
             owner.AddTab(detached, "Empty");
-            receiver.GetVisualDescendants().OfType<TextBox>().Single(c => c.Name == "LayoutName").Text = "Second";
-            Assert.True(await receiver.SaveAsync());
+            owner.Name = "Second";
+            Assert.True(await receiver.SaveAsync(saveNamed: true));
             var firstGeneration = owner.Charts.Single();
             Assert.True(await receiver.LoadAsync("First"));
             Assert.True(firstGeneration.IsClosed); Assert.False(window.IsVisible);

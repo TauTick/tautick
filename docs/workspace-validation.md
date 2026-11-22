@@ -1,4 +1,111 @@
-# TAU-11 window/tab validation
+# TAU-13 integrated header validation
+
+Recorded 2026-11-21. The [walkthrough](workspace.md) describes the compact header,
+context actions and automatic arrangement persistence. Earlier records below are
+historical; they do not establish acceptance of the current header.
+
+## Automated checks
+
+On Windows (.NET SDK 10.0.302), locked restore, the affected Debug builds and the
+Release desktop dependency build passed without warnings/errors. Focused suites
+passed **9 UI tests and 61 Desktop tests**. The same focused suites passed on WSL
+Ubuntu 22.04 x64 (.NET SDK 10.0.114), using separate Linux build artifacts.
+Release output contains no HotAvalonia, runtime XAML loader, gallery or synthetic
+fixture binaries.
+
+New regressions cover compact overflow with twelve long tabs and reachable caption
+controls/+, exact inactive-tab context targeting, rename cancellation and blur
+focus including the owner's synchronous refresh and the next tab's click/Tab input,
+Shift+F10 press/release with and without a platform-registered gesture, saved
+maximized geometry and normal resize followed by external maximize/header restore,
+detach retaining chart identity, Menu chart targeting, application exit
+queued behind persistence, multiwindow save failure with Retry or Close without
+saving, exiting while startup restore is queued, and automatic restart retaining
+window/tab identities and selection.
+Saved normal bounds also survive a native restore that reports the constructor's
+default dimensions, through both the caption and native state-change paths.
+Existing tests exercise input verification/recovery, indicators, pending imports,
+tab transfer/cancellation and compatibility with named stored layouts. No market
+adapter or calculation behavior changed; those suites were not rerun.
+
+## Native Windows and Linux checks
+
+Windows native UI Automation and real pointer/keyboard input exercised the gallery
+at 560 and 1040 DIP and the production MainWindow at 560 and 1200 DIP, scale 1.
+An external harness supplied an isolated WorkspaceStore to the production window;
+no personal settings were used. Inspected captures show the shared first-row tabs
+and compact chart controls. Native actions covered context rename, Shift+F10,
+overflow and +, blank-header drag/double-click, minimize/maximize/restore, edge
+resize, Alt+Space and keyboard maximize, and Win+Left snapping. Border-only Win32
+chrome required retaining WS_SYSMENU through Avalonia's public style callback.
+
+The production Windows walkthrough loaded an invented three-bar ESZ5 CSV through
+the real picker, detached the loaded tab, cancelled a transfer with Escape, moved
+the tab between windows, and opened Fit/Indicators from header keyboard focus.
+Exit saved two windows and three tabs; restart restored their membership and the
+verified synthetic input. The full contract year and instrument/timeframe/UTC/
+coverage summary remained visible at the compact size.
+
+Linux used native Avalonia X11/Skia on WSL Ubuntu 22.04, private Xvfb 2400x1800,
+Openbox, a separate D-Bus session and temporary XDG profiles. AT-SPI targets and
+XTEST input exercised the real GTK picker with the same invented bars, context
+rename/detach, blank-header drag and double-click maximize/restore, caption
+buttons, application exit and restored windows/input. Normal 560/1200 DIP and
+maximized rendering were inspected. At `AVALONIA_GLOBAL_SCALE_FACTOR=2`, the
+restored loaded chart, compact 560-DIP client width and maximized window were
+also inspected and caption/Menu actions exercised. This is a virtual scale
+override, not physical high-DPI evidence. Normal application shutdown returned 0.
+The initial claim that the X11 TitleBar role alone handled double-clicks was not
+reproducible and is superseded by the corrected checks. `WindowDragRegion` now
+recognizes clicks before starting a native move. Repeated native checks in both
+Desktop and Gallery verified maximize/restore from the reserved area and unused
+strip, drag movement, retained focus after rename-by-click or Tab, and Shift+F10.
+The gallery was checked at scales 1 and 2. A saved maximized production window at
+scale 2 restored its normal 560x632 DIP client size and retained it through another
+double-click maximize/restore cycle. The implementation waits for native state
+and decoration updates before restoring geometry; immediate resize had lost an
+inset on each cycle. Native tab-drag cancellation also left the window in place.
+
+The latest correction checks used a complete Windows Shift+F10 press/release on
+the focused inactive gallery tab: Rename/Detach/Close remained visible after release.
+On Linux, after a header maximize/restore cycle, a native resize/move established
+a 560x464 DIP client area. Alt+Space then maximized the window; header Restore
+returned the same client size and position. A saved maximized window at scale 2
+restored its 560x464 DIP client area and retained it through another double-click
+maximize/restore cycle. Captures were inspected and owned applications exited 0.
+
+A two-window normal startup at scale 2 exposed an older initial-sizing race:
+the main host could return to its initial 1182x800 DIP size after applying saved
+560x632 DIP bounds, while the detached host restored correctly. Restoration now
+waits for Avalonia's Loaded dispatcher phase while retaining persistence ownership.
+Repeated native launches, including a restart from the application's saved file,
+restored both 560x632 DIP client areas with reachable header controls. This timing
+regression needs native X11 checks; headless tests cannot emulate its configure
+events. The focused startup-exit test covers persistence ownership during the wait.
+
+Windows saved-maximized startup was checked at normal sizes 640x480 and 560x623
+DIP. Both the caption Restore action and Alt+Space → Restore retained the saved
+size and position, and the next exit persisted those same normal bounds. A full
+560x623 normal → maximize → exit → restart → Restore cycle also retained them.
+The shared header retains pending saved geometry for native restore actions on
+both platforms. Linux normal two-window startup and saved-maximized restoration
+at scale 2 were rechecked after this change.
+
+Fixtures, profiles, drivers, logs and captures stayed outside Git. The shared
+[gallery record](../samples/TauTick.UI.Gallery/VALIDATION.md) covers reload checks.
+
+## Remaining native scenarios
+
+- Physical high-DPI Windows, mixed monitors, monitor removal, scale transitions
+  and a full Linux desktop/Wayland session remain unverified.
+- Linux cross-window pointer transfer, edge resize/snapping and the full shortcut
+  walkthrough were not repeated in this native pass; focused tests and Windows
+  input checks do not establish those Linux scenarios.
+- Save failure/retry/discard and pending-import ownership have automated coverage;
+  native filesystem failure injection and native pending-import transfers were
+  not exercised. No new performance measurements were made.
+
+# TAU-11 window/tab validation (historical)
 
 Recorded 2026-11-09. TAU-11 replaces the independently active workspace-tab model
 with one workspace containing native windows and movable content tabs. The
