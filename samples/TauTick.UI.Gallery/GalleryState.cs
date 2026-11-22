@@ -23,6 +23,7 @@ public sealed class GalleryState : INotifyPropertyChanged
     public PresentationCommand Cancel { get; }
     public PresentationCommand Open { get; }
     public PresentationCommand Indicators { get; }
+    public void Report(string message) => Result = message;
     public GalleryState()
     {
         Apply = new(() => { if (!CanApply) return; _saved = (DisplayName, StrokeWidth, PriceDisplayIndex); Result = $"Applied sample: {DisplayName}, width {StrokeWidth}."; });

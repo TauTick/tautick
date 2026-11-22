@@ -12,6 +12,7 @@ public sealed class GalleryWindow : Window
 {
     private readonly ComboBox _selector;
     private readonly ContentControl _content = new();
+    private readonly ContentControl _chrome = new();
     private readonly TextBlock _status = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 11 };
     private readonly TextBlock _environment = new() { FontSize = 11, TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private string? _lastReload;
@@ -21,6 +22,7 @@ public sealed class GalleryWindow : Window
     public GalleryWindow(GalleryOptions options)
     {
         Title = "TauTick UI Gallery"; Width = options.Compact ? 560 : 1040; Height = 820; MinWidth = 420; MinHeight = 480;
+        WindowHeader.ConfigureWindow(this);
         _selector = new ComboBox { ItemsSource = GalleryOptions.SceneNames, Width = 140 };
         AutomationProperties.SetAutomationId(_selector, "SceneSelector");
         AutomationProperties.SetName(_selector, "Gallery scene");
@@ -33,7 +35,8 @@ public sealed class GalleryWindow : Window
         header.Children.Add(new WrapPanel { Children = { _selector, reset, compact, wide } });
         header.Children.Add(_environment);
         header.Children.Add(_status);
-        var panel = new DockPanel(); DockPanel.SetDock(header, Avalonia.Controls.Dock.Top); panel.Children.Add(header);
+        var panel = new DockPanel(); DockPanel.SetDock(_chrome, Avalonia.Controls.Dock.Top); panel.Children.Add(_chrome);
+        DockPanel.SetDock(header, Avalonia.Controls.Dock.Top); panel.Children.Add(header);
         panel.Children.Add(new ScrollViewer { Content = _content, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled });
         Content = panel;
         _selector.SelectionChanged += (_, _) => ResetScene();
@@ -56,7 +59,14 @@ public sealed class GalleryWindow : Window
     public void ResetScene()
     {
         SceneState = new GalleryState();
-        Control scene = Scene switch { "toolbar" => new ToolbarScene(), "settings" => new SettingsScene(), _ => new ControlsScene() };
+        var chrome = new WindowHeader();
+        _chrome.Content = chrome;
+        Control scene = Scene switch { "toolbar" => new ToolbarScene(chrome), "settings" => new SettingsScene(), _ => new ControlsScene() };
+        if (Scene != "toolbar")
+        {
+            chrome.Tabs.SetTabs([new("gallery", "Gallery / " + Scene)], "gallery");
+            chrome.ExitRequested += Close;
+        }
         scene.DataContext = SceneState;
         AutomationProperties.SetAutomationId(scene, "CurrentScene");
         _content.Content = scene;

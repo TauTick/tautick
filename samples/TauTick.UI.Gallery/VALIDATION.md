@@ -1,4 +1,39 @@
-# TAU-12 validation and provisional design
+# TAU-13 integrated header checks
+
+Recorded 2026-11-21. The toolbar scene and gallery window use the shared production
+`WindowHeader`, content tabs and compact `ChartToolbar`. Windows native UI
+Automation and pointer/keyboard input exercised startup/reset, 560/1040 DIP sizes,
+tab context rename, Shift+F10, long/many-tab overflow with pinned +, blank-header
+drag/double-click, caption buttons, native edge resize, Alt+Space/keyboard maximize
+and Win+Left snapping. Native captures were opened and inspected at scale 1.
+
+A shared Fit-label edit appeared in the same running gallery process. An invalid
+AXAML property then produced the visible GalleryStatus reload diagnostic with
+source/property/line details; correcting it rendered `Fit recovered` in the same
+PID. The label was restored to `Fit` and observed again. These checks were not a
+timed reload benchmark. C# changes used an incremental build and a new process.
+
+The affected UI suite passes 9 tests on Windows and Linux. Native Linux Gallery
+checks at scales 1 and 2 verified the corrected blank-header double-click/drag,
+Shift+F10 and rename-by-click focus retention. Production checks also cover Tab
+after rename and saved maximized-window restore geometry. Captures were inspected.
+The complete gallery reload/error loop was not repeated on Linux for this task:
+a Windows edit of the shared source under `/mnt/c` was not observed by the Linux
+watcher in a bounded check, and no reload success is claimed for that attempt.
+The observed Windows reload/error/recovery loop is recorded above. Physical Windows DPI,
+mixed monitors and Wayland remain unverified. The
+[workspace record](../../docs/workspace-validation.md) separates native application
+flows, focused tests and remaining scenarios. All synthetic files, profiles,
+drivers and captures remain outside Git.
+
+Windows Shift+F10 was rechecked with a full press/release: the focused inactive
+tab's context menu remained visible after release. Linux native system-menu
+maximize followed by header Restore retained the latest resized geometry; saved
+maximized startup and another double-click cycle at scale 2 also retained it.
+These sequences pass automated regressions on both platforms. Native captures
+were inspected; owned applications exited 0.
+
+# TAU-12 validation and provisional design (historical)
 
 Recorded 2026-11-09 on **aquila**, Ubuntu 24.04.5 x64, Linux 6.8.0-147-generic. SDK **10.0.114**, net10.0, Avalonia/Dock **12.1.5**, HotAvalonia **3.1.5**, runtime XAML loader **12.1.5**, bundled Inter. Native X11/Skia under an owned Openbox/Xvfb screen 1600×1100×24 with GLX disabled, scale **1**, separate D-Bus and temporary XDG profiles. This is software/virtual-display evidence, not physical-monitor or GPU performance evidence.
 

@@ -10,13 +10,46 @@ The desktop owner retains loading, error/cancellation handling, active chart tar
 
 `SettingsPanel` exposes `DisplayNameText`, nullable `StrokeWidth`, `PriceDisplayIndex`, `ErrorText`, `CanApply` and Apply/Cancel commands. The caller owns drafts, validation and persistence; the gallery's `GalleryState` supplies deterministic sample behavior. The selector demonstrates two display choices; this initial panel is not the production indicator editor. `PresentationCommand` is a synchronous action adapter. An owner starting async work must retain its own cancellation/error lifetime, as the desktop already does.
 
+`WindowHeader` supplies the first row shared by Desktop and the native gallery:
+Menu, `ContentTabBar`, a reserved drag area and caption buttons. `ConfigureWindow`
+uses Avalonia 12.1.5 `WindowDecorations.BorderOnly`, extended client area and
+`WindowDecorationProperties.ElementRole`. `WindowDragRegion` uses native title-bar
+hit testing on Windows. On Linux it distinguishes a double-click from a drag before
+calling native `BeginMoveDrag`: Avalonia 12.1.5 X11 consumes TitleBar presses before
+managed click recognition. Interactive children use their own roles. Caption buttons retain native
+hit testing, accessible names, tooltips and keyboard invocation. Application menu
+items raise AddChart/Exit requests. The host retains a normal native Window and its
+close policy. The tab bar instance survives header markup reload. `SetRestoreBounds`
+accepts the host's restored normal geometry; subsequent normal moves/resizes update
+the retained bounds after native state and layout events settle. Saved geometry
+remains pending through maximized startup until the window returns to normal,
+including restore through native keyboard/system-menu actions. Geometry is applied
+after the state transition and decoration insets settle; this preserves normal
+bounds on Windows and avoids retained maximized dimensions or cumulative inset
+loss on Linux at scale 2.
+
 `ContentTabBar` and its AXAML `ContentTabHeader` present ordered content tabs,
-selection, close, + and insertion feedback. `SetTabs` accepts presentation-only
-`ContentTabItem` values. Add/Selection/Close and drag events are requests; the owner
+selection, +, context actions and insertion feedback. `SetTabs` accepts presentation-only
+`ContentTabItem` values and retains controls by tab ID, including during rename commits
+that occur inside a focus/press event. Add/Selection/Close/Detach/Rename and drag events are requests; the owner
 commits transfers. `InsertionAt` uses screen coordinates, including headers and
-unused strip space; Escape/capture loss cancels. Pointer capture starts after a
+unused strip space; the pinned + appends. Overflow scrolls inside the strip while
+Menu, + and caption buttons stay available. Tab context menus support Shift+F10,
+deferring to Avalonia when the platform registers that gesture and supplying a fallback otherwise;
+Rename uses an inline editor with Enter/blur to commit and Escape to cancel.
+Escape/capture loss cancels a tab drag. Pointer capture starts after a
 movement threshold. No document, window ownership or persistence lives here. The
 gallery toolbar scene exercises this exact strip with synthetic chart/empty tabs.
+
+Decoration API references: [Avalonia 12 migration](https://docs.avaloniaui.net/docs/avalonia12-breaking-changes),
+[12.1.5 attached-role source](https://github.com/AvaloniaUI/Avalonia/blob/12.1.5/src/Avalonia.Controls/Chrome/WindowDecorationProperties.cs),
+and [12.1.5 Window source](https://github.com/AvaloniaUI/Avalonia/blob/12.1.5/src/Avalonia.Controls/Window.cs).
+The removed `ExtendClientAreaChromeHints` and obsolete `SystemDecorations` are not used.
+On Windows, the pinned `BorderOnly` implementation drops `WS_SYSMENU`.
+`ConfigureWindow` retains that flag through the public
+[12.1.5 window-style callback](https://github.com/AvaloniaUI/Avalonia/blob/12.1.5/src/Avalonia.Controls/Platform/Win32Properties.cs)
+so Alt+Space keeps its native menu without adding another title bar. Avalonia ignores
+the callback on other platforms.
 
 ## Resources, fonts and component authoring
 

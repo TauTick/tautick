@@ -1,10 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:ui="using:TauTick.UI" x:Class="TauTick.UI.ContentTabHeader" x:DataType="ui:ContentTabItem" x:Name="Root" Classes="tau">
+             xmlns:ui="using:TauTick.UI" xmlns:chrome="using:Avalonia.Controls.Chrome"
+             x:Class="TauTick.UI.ContentTabHeader" x:DataType="ui:ContentTabItem" x:Name="Root" Classes="tau"
+             chrome:WindowDecorationProperties.ElementRole="User">
   <Grid>
-    <StackPanel Orientation="Horizontal">
-      <Button x:Name="SelectTab" Content="{Binding Title}" Classes="tau" Padding="12,6" MinWidth="76" MaxWidth="220" />
-      <Button x:Name="CloseTab" Content="×" Classes="tau" Padding="6,3" MinWidth="26" />
-    </StackPanel>
+    <Button x:Name="SelectTab" Classes="tau tauCompact" Padding="12,4" MinWidth="76" MaxWidth="200" Margin="1,2"
+            ToolTip.Tip="{Binding Title}" IsVisible="{Binding !IsRenaming, ElementName=Root}">
+      <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+      <Button.ContextMenu>
+        <ContextMenu>
+          <MenuItem x:Name="RenameTab" Header="_Rename" />
+          <MenuItem x:Name="DetachTab" Header="_Detach" />
+          <MenuItem x:Name="CloseTab" Header="_Close" />
+        </ContextMenu>
+      </Button.ContextMenu>
+    </Button>
+    <TextBox x:Name="TabNameEditor" Width="180" MaxLength="200" MinHeight="28" Margin="1,2"
+             AutomationProperties.Name="Content tab name" IsVisible="{Binding IsRenaming, ElementName=Root}" />
     <Border Height="3" VerticalAlignment="Bottom" Background="{DynamicResource TauAccent}" IsHitTestVisible="False"
             IsVisible="{Binding IsSelected, ElementName=Root}" />
   </Grid>

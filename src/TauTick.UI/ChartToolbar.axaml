@@ -5,14 +5,15 @@
     <TextBlock Text="Year" VerticalAlignment="Center" Margin="0,0,6,0"
                IsVisible="{Binding ShowContractYear, ElementName=Root}" />
     <TextBox Name="ContractYear" AutomationProperties.AutomationId="ContractYear"
-             IsEnabled="{Binding CanEditYear, ElementName=Root}" Width="76" MaxLength="4" PlaceholderText="2025"
+             IsEnabled="{Binding CanEditYear, ElementName=Root}" Width="64" MinHeight="28" Padding="6,3" MaxLength="4" PlaceholderText="2025"
+             AutomationProperties.Name="Full contract year" ToolTip.Tip="Full contract year (for example 2025)"
              IsVisible="{Binding ShowContractYear, ElementName=Root}"
              Text="{Binding ContractYearText, ElementName=Root, Mode=TwoWay}" />
-    <Button x:Name="OpenCsv" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="OpenCsv" Content="Open CSV…"
+    <Button x:Name="OpenCsv" Classes="tau tauCompact" Margin="4,0" AutomationProperties.AutomationId="OpenCsv" Content="Open CSV…" ToolTip.Tip="Open CSV (Ctrl+O)"
             Command="{Binding OpenCommand, ElementName=Root}" IsEnabled="{Binding CanOpen, ElementName=Root}" />
-    <Button x:Name="FitData" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="FitData" Content="Fit" ToolTip.Tip="Fit the full accepted range"
+    <Button x:Name="FitData" Classes="tau tauCompact" Margin="0" AutomationProperties.AutomationId="FitData" Content="Fit" ToolTip.Tip="Fit the full accepted range (Ctrl+0)"
             Command="{Binding FitCommand, ElementName=Root}" IsEnabled="{Binding CanFit, ElementName=Root}" />
-    <Button x:Name="OpenIndicators" Classes="tau" Margin="4,2" AutomationProperties.AutomationId="OpenIndicators" Content="Indicators…"
+    <Button x:Name="OpenIndicators" Classes="tau tauCompact" Margin="4,0" AutomationProperties.AutomationId="OpenIndicators" Content="Indicators…" ToolTip.Tip="Indicators (Ctrl+I)"
             Command="{Binding IndicatorsCommand, ElementName=Root}" />
     <ContentControl Content="{Binding AdditionalContent, ElementName=Root}" />
   </WrapPanel>

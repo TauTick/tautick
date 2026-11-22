@@ -327,7 +327,7 @@ internal sealed class WorkspaceController : IChartHost
 
     private Menu ChartMenu(ContentTab tab, ChartDocument document)
     {
-        var menu = new MenuItem { Header = "Chart ▾" };
+        var menu = new MenuItem { Header = "Chart ▾", Padding = new(8, 4), Height = 28 };
         menu.Items.Add(Item("Split right", () => SplitChart(tab, document.Id, false)));
         menu.Items.Add(Item("Split below", () => SplitChart(tab, document.Id, true)));
         menu.Items.Add(Item("Close chart", () => CloseChart(tab, document.Id)));

@@ -23,6 +23,69 @@ public static class TestAppBuilder
 
 public sealed class PresentationTests
 {
+    [AvaloniaTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FocusedTabOpensItsContextMenuWithShiftF10(bool platformHandlesGesture)
+    {
+        var tabs = new ContentTabBar();
+        tabs.SetTabs([new("a", "First"), new("b", "Second")], "a");
+        var window = new Window { Content = tabs }; window.Show();
+        var gestures = window.GetPlatformSettings()!.HotkeyConfiguration.OpenContextMenu;
+        var originalGestures = gestures.ToArray();
+        gestures.Clear();
+        gestures.Add(new(Key.Apps));
+        if (platformHandlesGesture) gestures.Add(new(Key.F10, KeyModifiers.Shift));
+        try
+        {
+            var header = tabs.GetVisualDescendants().OfType<ContentTabHeader>().Single(h => Equals(h.Tag, "b"));
+            var select = header.FindControl<Button>("SelectTab")!;
+            select.Focus();
+            window.KeyPress(Key.F10, RawInputModifiers.Shift, PhysicalKey.F10, null);
+            if (platformHandlesGesture) Assert.False(select.ContextMenu!.IsOpen);
+            window.KeyRelease(Key.F10, RawInputModifiers.Shift, PhysicalKey.F10, null);
+            Assert.True(select.ContextMenu!.IsOpen);
+            Assert.False(header.IsSelected);
+            select.ContextMenu.Close();
+        }
+        finally
+        {
+            gestures.Clear();
+            foreach (var gesture in originalGestures) gestures.Add(gesture);
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void TabRenameCanCancelOrCommitOnBlurWithoutTakingFocusFromTheNextControl()
+    {
+        var tabs = new ContentTabBar();
+        tabs.SetTabs([new("a", "First"), new("b", "Second")], "a");
+        var next = new TextBox();
+        var window = new Window { Content = new StackPanel { Children = { tabs, next } } }; window.Show();
+        var renames = new List<(string, string)>();
+        tabs.RenameRequested += (id, name) => renames.Add((id, name));
+        try
+        {
+            var header = tabs.GetVisualDescendants().OfType<ContentTabHeader>().Single(h => Equals(h.Tag, "b"));
+            var editor = header.FindControl<TextBox>("TabNameEditor")!;
+            header.FindControl<MenuItem>("RenameTab")!.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            editor.Focus(); editor.Text = "Discarded";
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.Empty(renames); Assert.False(header.IsRenaming);
+            header.FindControl<MenuItem>("RenameTab")!.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            editor.Focus(); editor.Text = " Renamed second ";
+            next.Focus();
+            Assert.Equal(("b", "Renamed second"), Assert.Single(renames));
+            Assert.True(next.IsFocused); Assert.False(header.IsSelected);
+            var closed = "";
+            tabs.CloseRequested += id => closed = id;
+            header.FindControl<MenuItem>("CloseTab")!.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Equal("b", closed);
+        }
+        finally { window.Close(); }
+    }
+
     [AvaloniaFact]
     public void ToolbarBindsYearAndAvailabilityAndInvokesOwners()
     {

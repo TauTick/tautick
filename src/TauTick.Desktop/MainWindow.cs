@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using TauTick.Charting;
 using TauTick.Desktop.Workspace;
@@ -13,16 +14,17 @@ public sealed class MainWindow : Window
 {
     private readonly TextBlock _status = new() { Name = "WorkspaceStatus", TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 11 };
     private readonly ContentControl _content = new();
-    private readonly ContentTabBar _tabs = new() { Name = "ContentTabs" };
-    private readonly TextBox _layoutName = new() { Name = "LayoutName", Width = 150, MaxLength = 100 };
-    private readonly ComboBox _savedLayouts = new() { Name = "SavedLayouts", Width = 160, PlaceholderText = "Saved layouts" };
-    private readonly TextBox _tabName = new() { Name = "ContentTabName", Width = 150, MaxLength = 200 };
+    private readonly WindowHeader _header = new();
+    private ContentTabBar _tabs => _header.Tabs;
+    private readonly Button _retrySave = new() { Name = "RetryWorkspaceSave", Content = "Retry", IsVisible = false };
     private readonly Button _discardAndClose = new() { Content = "Close without saving", IsVisible = false };
     private bool _allowClose;
     private bool _layoutClose;
     private bool _saving;
     private bool _loadingLayout;
-    private bool _closeAfterLoad;
+    private bool _resumeCloseAfterPersistence;
+    private CloseIntent _closeIntent;
+    private enum CloseIntent { None, Window, Application }
     private WindowGeometry? _normalBounds;
     private readonly bool _startup;
     internal WorkspaceStore? Store { get; }
@@ -43,36 +45,26 @@ public sealed class MainWindow : Window
     {
         Title = "TauTick — Workspace";
         Width = 1200; Height = 800; MinWidth = 560; MinHeight = 380;
+        WindowHeader.ConfigureWindow(this);
         Controller = controller; Model = model ?? controller.Windows[0]; Model.Host = this;
         Store = store; _startup = startup;
-        _layoutName.Text = controller.Name;
-        var save = Button("Save layout", "SaveWorkspace", async () => await SaveAsync());
-        var load = Button("Load layout", "LoadWorkspace", async () =>
-        {
-            if (_savedLayouts.SelectedItem is string name) await LoadAsync(name);
-        });
-        var exit = Button("Exit application", "ExitApplication", async () =>
-        {
-            if (Store is null || await SaveAsync(saveNamed: false)) Controller.Close();
-        });
-        save.IsVisible = load.IsVisible = _savedLayouts.IsVisible = _layoutName.IsVisible = store is not null;
-        _discardAndClose.Click += (_, _) => { _allowClose = true; Close(); };
-        var actions = new WrapPanel { Margin = new(8, 4), Children = {
-            new TextBlock { Text = "TauTick", FontSize = 18, Margin = new(0,0,10,0), VerticalAlignment = VerticalAlignment.Center },
-            _layoutName, save, _savedLayouts, load, exit, _discardAndClose } };
-        _tabName.LostFocus += (_, _) => RenameTab();
-        _tabName.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) RenameTab(); };
-        var addChart = Button("+ Chart", "AddChart", () => Controller.AddChart(Model.SelectedTab));
-        var detach = Button("Detach tab", "DetachTab", () => { if (Model.SelectedTab is { } tab) Controller.DetachTab(tab); });
-        var tabActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new(6, 3), Children = { _tabName, addChart, detach } };
-        var header = new StackPanel { Children = { actions, _status, _tabs, tabActions } };
+        _header.AddChartRequested += () => Controller.AddChart(Model.SelectedTab);
+        _header.ExitRequested += async () => await ExitAsync();
+        _retrySave.Click += async (_, _) => await RetrySaveAsync();
+        _discardAndClose.Click += (_, _) => CompleteClose();
+        AutomationProperties.SetAutomationId(_status, "WorkspaceStatus");
+        AutomationProperties.SetAutomationId(_retrySave, "RetryWorkspaceSave");
+        AutomationProperties.SetAutomationId(_discardAndClose, "CloseWithoutSaving");
+        var recovery = new WrapPanel { Children = { _retrySave, _discardAndClose } };
+        var header = new StackPanel { Children = { _header, _status, recovery } };
         _status.IsVisible = false;
         var root = new DockPanel(); DockPanel.SetDock(header, Avalonia.Controls.Dock.Top);
         root.Children.Add(header); root.Children.Add(_content); Content = root;
-        foreach (var control in new Control[] { _tabs, _layoutName, _savedLayouts, _tabName }) AutomationProperties.SetAutomationId(control, control.Name!);
         _tabs.AddRequested += () => Controller.AddTab(Model);
         _tabs.SelectionRequested += id => Controller.SelectTab(Model, Model.Tabs.Single(t => t.Id.ToString() == id));
         _tabs.CloseRequested += id => Controller.CloseTab(Model.Tabs.Single(t => t.Id.ToString() == id));
+        _tabs.DetachRequested += id => Controller.DetachTab(Model.Tabs.Single(t => t.Id.ToString() == id));
+        _tabs.RenameRequested += (id, name) => Controller.Rename(Model.Tabs.Single(t => t.Id.ToString() == id), name);
         _tabs.DragMoved += drag => Drag(drag, false);
         _tabs.DragCompleted += drag => Drag(drag, true);
         _tabs.DragCancelled += ClearInsertion;
@@ -81,7 +73,7 @@ public sealed class MainWindow : Window
         Activated += (_, _) => Controller.ActivateWindow(Model);
         Opened += async (_, _) =>
         {
-            TrackBounds(); RefreshNames();
+            TrackBounds();
             if (!_startup || Store is null) return;
             await LoadAsync(null);
         };
@@ -89,11 +81,12 @@ public sealed class MainWindow : Window
         Closing += async (_, e) =>
         {
             _tabs.CancelDrag();
-            if (_allowClose || Store is null || Controller.Windows.Count > 1) return;
+            if (_allowClose || Store is null) return;
+            if (Controller.Windows.Count > 1 && !Controller.PersistenceBusy) return;
             e.Cancel = true;
-            if (Controller.PersistenceBusy) { _closeAfterLoad = true; return; }
-            if (_saving) return;
-            if (await SaveAsync(saveNamed: false)) { _allowClose = true; Close(); }
+            if (_closeIntent != CloseIntent.Application) _closeIntent = CloseIntent.Window;
+            if (Controller.PersistenceBusy) { _resumeCloseAfterPersistence = true; return; }
+            await SaveAndCloseAsync();
         };
         Closed += (_, _) =>
         {
@@ -101,16 +94,22 @@ public sealed class MainWindow : Window
             Controller.PersistenceCompleted -= PersistenceCompleted;
             if (!_layoutClose) Controller.CloseWindow(Model);
         };
+        KeyDown += async (_, e) =>
+        {
+            if (e.Handled || e.KeyModifiers != KeyModifiers.Control || Model.SelectedTab is not { } tab
+                || tab.ActiveChartId is not { } id || !tab.Charts.TryGetValue(id, out var chart)) return;
+            if (e.Key == Key.O)
+            {
+                e.Handled = true;
+                if (!chart.IsRestoring && !chart.Session.IsBusy && (!chart.IsProduction || chart.ContractYear is not null))
+                { Controller.ActivateChart(id); await chart.Session.OpenAsync(); }
+            }
+            else if (e.Key == Key.D0) { e.Handled = true; Controller.ActivateChart(id); chart.FitToData(); }
+            else if (e.Key == Key.I) { e.Handled = true; chart.OpenIndicators(); }
+        };
         Refresh();
     }
 
-    private static Button Button(string text, string id, Action action)
-    {
-        var button = new Button { Name = id, Content = text, Classes = { "tau" }, Margin = new(3, 0) };
-        AutomationProperties.SetAutomationId(button, id);
-        button.Click += (_, _) => action(); return button;
-    }
-    private void RenameTab() { if (Model.SelectedTab is { } tab) Controller.Rename(tab, _tabName.Text ?? tab.Name); }
     internal void ReleaseContent() => _content.Content = null;
     internal void CloseForLayout() { _layoutClose = true; _allowClose = true; Close(); }
     private void Refresh()
@@ -118,11 +117,9 @@ public sealed class MainWindow : Window
         if (Controller.IsClosed) return;
         _tabs.SetTabs(Model.Tabs.Select(t => new ContentTabItem(t.Id.ToString(), t.Name)), Model.SelectedTabId?.ToString());
         var selected = Model.SelectedTab;
-        _tabName.Text = selected?.Name;
         if (selected is not null && !ReferenceEquals(_content.Content, selected.Surface)) _content.Content = selected.Surface;
         if (Controller.Notice is { } notice) SetStatus(notice);
-        Title = $"TauTick — {Controller.Name}";
-        if (!_layoutName.IsFocused) _layoutName.Text = Controller.Name;
+        Title = "TauTick — Workspace";
     }
     private void Drag(ContentTabDrag drag, bool complete)
     {
@@ -148,25 +145,23 @@ public sealed class MainWindow : Window
         && new PixelRect(host.Position, PixelSize.FromSize(host.Bounds.Size, host.RenderScaling)).Contains(point);
     private void ClearInsertion() { foreach (var window in Controller.Windows) window.Host?._tabs.ShowInsertion(null); }
 
-    public async Task<bool> SaveAsync(bool saveNamed = true)
+    public async Task<bool> SaveAsync(bool saveNamed = false)
     {
         if (Store is null || _saving || _loadingLayout || Controller.IsClosed || !Controller.TryBeginPersistence()) return false;
         _saving = true;
         try
         {
-            var state = Controller.Capture() with { Name = (_layoutName.Text ?? "").Trim() };
+            var state = Controller.Capture();
             if (saveNamed) await Store.Named(state.Name).SaveAsync(state);
             await Store.SaveAsync(state);
             Controller.Name = state.Name;
-            if (!Controller.IsClosed) SetStatus("Layout saved.");
-            _discardAndClose.IsVisible = false;
-            foreach (var window in Controller.Windows) { window.Host?.RefreshNames(); window.Host?.Refresh(); }
+            _retrySave.IsVisible = _discardAndClose.IsVisible = false;
             return true;
         }
         catch (Exception)
         {
-            SetStatus("Layout could not be saved. Check its name and settings folder, then retry Save layout, or close without saving.");
-            _discardAndClose.IsVisible = true; return false;
+            SetStatus("The arrangement could not be saved. Check the settings folder and chart settings, then Retry or Close without saving.");
+            _retrySave.IsVisible = _discardAndClose.IsVisible = true; return false;
         }
         finally { _saving = false; Controller.EndPersistence(); }
     }
@@ -177,6 +172,10 @@ public sealed class MainWindow : Window
         _loadingLayout = true;
         try
         {
+            // Let native initial sizing settle before restoring the visible host.
+            // Hold persistence ownership while queued so an early exit cannot
+            // overwrite the saved arrangement with the initial empty window.
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => { }, Avalonia.Threading.DispatcherPriority.Loaded);
             var loaded = await (name is null ? Store : Store.Named(name)).LoadAsync();
             if (Controller.IsClosed) return false;
             if (loaded.State is { } state) await Controller.RestoreAsync(state, Model);
@@ -190,23 +189,43 @@ public sealed class MainWindow : Window
             Controller.EndPersistence();
         }
     }
-    private void RefreshNames()
+    internal async Task ExitAsync()
     {
-        if (Store is null) return;
-        try { _savedLayouts.ItemsSource = Store.Names(); }
-        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException) { SetStatus("Saved layout names could not be read."); }
+        _closeIntent = CloseIntent.Application;
+        if (Controller.PersistenceBusy) { _resumeCloseAfterPersistence = true; return; }
+        await SaveAndCloseAsync();
+    }
+    private async Task SaveAndCloseAsync()
+    {
+        if (Controller.IsClosed) return;
+        if (Store is null || (_closeIntent == CloseIntent.Window && Controller.Windows.Count > 1) || await SaveAsync()) CompleteClose();
+    }
+    private async Task RetrySaveAsync()
+    {
+        if (_closeIntent == CloseIntent.None) await SaveAsync();
+        else await SaveAndCloseAsync();
+    }
+    private void CompleteClose()
+    {
+        if (_closeIntent == CloseIntent.Application) Controller.Close();
+        else { _allowClose = true; Close(); }
     }
     private void PersistenceCompleted()
     {
-        if (!_closeAfterLoad || Controller.IsClosed) return;
-        _closeAfterLoad = false;
-        Avalonia.Threading.Dispatcher.UIThread.Post(Close);
+        if (!_resumeCloseAfterPersistence || Controller.IsClosed) return;
+        _resumeCloseAfterPersistence = false;
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () => await SaveAndCloseAsync());
     }
     internal WindowGeometry CaptureGeometry() => (_normalBounds ?? new(Position.X, Position.Y, Width, Height, false)) with { Maximized = WindowState == WindowState.Maximized };
+    internal void SetRestoredNormalGeometry(WindowGeometry geometry)
+    {
+        _normalBounds = geometry with { Maximized = false };
+        _header.SetRestoreBounds(new(geometry.Width, geometry.Height), new((int)geometry.X, (int)geometry.Y));
+    }
     private void TrackBounds()
     {
-        if (WindowState == WindowState.Normal && Bounds.Width > 0 && Bounds.Height > 0)
-            _normalBounds = new(Position.X, Position.Y, Bounds.Width, Bounds.Height, false);
+        if (WindowState == WindowState.Normal && double.IsFinite(Width) && double.IsFinite(Height) && Width > 0 && Height > 0)
+            _normalBounds = new(Position.X, Position.Y, Width, Height, false);
     }
     private void SetStatus(string message) { _status.Text = message; _status.IsVisible = true; }
 }
