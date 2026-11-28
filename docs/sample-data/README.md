@@ -127,6 +127,33 @@ Databento's [public tick-data page](https://databento.com/tick-data) links the l
 
 Those URLs return the larger samples, not the 10,000-record local prefixes. Download them separately only when needed. When making a prefix, preserve the header and original row order, include the necessary initialization snapshot, and finish at a complete event boundary. For MBO, `F_LAST` applies per instrument; do not treat an arbitrary fixed line count as a universal safe boundary. Refer to [CME normalization](https://databento.com/docs/datasets/glbx-mdp3) and the [MBO schema](https://databento.com/docs/schemas/mbo) before implementing book replay.
 
+## Quote a Databento MBO interval
+
+Use Python 3.11 or later and set `DATABENTO_API_KEY` in your shell environment. From the repository root, install the official client and run the quote:
+
+```sh
+python -m pip install databento
+python scripts/databento/quote.py
+```
+
+The command estimates the cost in USD and billable size in bytes for the raw `ESZ6` contract in `GLBX.MDP3` with schema `mbo`. The default interval starts at `2026-10-28T00:00:00Z` (inclusive) and ends at `2026-11-27T00:00:00Z` (exclusive). The command uses Databento's free quote metadata endpoints. [Databento metered pricing](https://databento.com/docs/api-historical/basics/metered-pricing).
+
+Use `--symbol`, `--start`, and `--end` to quote another interval. Dates select midnight UTC. ISO 8601 timestamps with offsets are converted to UTC, and timestamps without offsets are treated as UTC.
+
+```sh
+python scripts/databento/quote.py --symbol NQZ6 --start 2026-11-02 --end 2026-11-03
+python scripts/databento/quote.py --help
+```
+
+To reuse your key across shell sessions, copy [`.env.example`](../../scripts/databento/.env.example) to `scripts/databento/.env` and paste your key after `DATABENTO_API_KEY=`. Git ignores the local `.env`. Install `python-dotenv` once and use it to load the file when launching the quote:
+
+```sh
+python -m pip install "python-dotenv[cli]"
+python -m dotenv -f scripts/databento/.env run -- python scripts/databento/quote.py
+```
+
+Run the offline checks with `python -B -m unittest discover -s scripts/databento`. They use a stub client and require only Python.
+
 ## Optional native DBN fixtures
 
 The [official Python client's GLBX.MDP3 test directory](https://github.com/databento/databento-python/tree/f6529f1062e0642fe52334d767a72f2a75244398/tests/data/GLBX.MDP3) supplies 14 tiny `.dbn.zst` files at pinned revision `f6529f1062e0642fe52334d767a72f2a75244398`. Keep any downloaded copies outside the checkout too.
